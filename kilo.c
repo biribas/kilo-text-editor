@@ -12,6 +12,8 @@ void enableRawMode(void);
 void disableRawMode(void);
 void die(const char*);
 char editorReadKey(void);
+// Output
+void editorRefreshScreen(void);
 // Input
 void editorProcessKeypress(void);
 
@@ -23,6 +25,7 @@ int main(void) {
   enableRawMode();
 
   while (1) {
+    editorRefreshScreen();
     editorProcessKeypress();
   }
 
@@ -68,6 +71,13 @@ char editorReadKey(void) {
       die("read");
   }
   return c;
+}
+
+/*** Input ***/
+
+void editorRefreshScreen(void) {
+  write(STDOUT_FILENO, "\x1b[2J", 4);
+  write(STDOUT_FILENO, "\x1b[H", 3);
 }
 
 /*** Input ***/
