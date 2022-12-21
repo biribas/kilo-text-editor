@@ -59,6 +59,9 @@ void disableRawMode(void) {
 }
 
 void die(const char *str) {
+  write(STDOUT_FILENO, "\x1b[2J", 4);
+  write(STDOUT_FILENO, "\x1b[H", 3);
+
   perror(str);
   exit(1);
 }
@@ -87,6 +90,8 @@ void editorProcessKeypress(void) {
 
   switch (c) {
     case CTRL_KEY('q'):
+      write(STDOUT_FILENO, "\x1b[2J", 4);
+      write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
       break;
   }
