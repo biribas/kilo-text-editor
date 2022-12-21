@@ -15,6 +15,7 @@ void die(const char *str);
 char editorReadKey(void);
 int getWindowSize(int *rows, int *cols);
 // Output
+void editorDrawRows(void);
 void editorRefreshScreen(void);
 // Input
 void editorProcessKeypress(void);
@@ -107,8 +108,18 @@ int getWindowSize(int *rows, int *cols) {
 
 /*** Output ***/
 
+void editorDrawRows(void) {
+  for (int i = 0; i < editor.rows; i++) {
+    write(STDOUT_FILENO, "~\r\n", 3);
+  }
+}
+
 void editorRefreshScreen(void) {
   write(STDOUT_FILENO, "\x1b[2J", 4);
+  write(STDOUT_FILENO, "\x1b[H", 3);
+
+  editorDrawRows();
+
   write(STDOUT_FILENO, "\x1b[H", 3);
 }
 
