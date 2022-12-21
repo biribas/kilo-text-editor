@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
+#include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -10,23 +11,29 @@
 // Terminal
 void enableRawMode(void);
 void disableRawMode(void);
-void die(const char*);
+void die(const char *str);
 char editorReadKey(void);
+int getWindowSize(int *rows, int *cols);
 // Output
 void editorRefreshScreen(void);
 // Input
 void editorProcessKeypress(void);
+//Init
+void initEditor(void);
 
 struct editorConfig {
-  struct termios orig_termios;
+  int rows;
+  int cols;
+  struct termios original_termios;
 };
 
-struct editorConfig E;
+struct editorConfig editor;
 
 /*** Init ***/
 
 int main(void) {
   enableRawMode();
+  initEditor();
 
   while (1) {
     editorRefreshScreen();
@@ -36,15 +43,20 @@ int main(void) {
   return 0;
 }
 
+void initEditor(void) {
+  if (getWindowSize(&editor.rows, &editor.cols) == -1)
+    die("getWindowSize");
+}
+
 /*** Terminal ***/
 
 void enableRawMode(void) {
-  if (tcgetattr(STDIN_FILENO, &E.orig_termios) == -1)
+  if (tcgetattr(STDIN_FILENO, &editor.original_termios) == -1)
     die("tcgetattr");
   
   atexit(disableRawMode);
 
-  struct termios raw = E.orig_termios;
+  struct termios raw = editor.original_termios;
   
   raw.c_iflag &= ~(BRKINT | INPCK | ISTRIP | ICRNL | IXON);
   raw.c_oflag &= ~(OPOST);
@@ -58,7 +70,7 @@ void enableRawMode(void) {
 }
 
 void disableRawMode(void) {
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1) 
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &editor.original_termios) == -1) 
     die("tcsetattr");
 }
 
@@ -78,6 +90,19 @@ char editorReadKey(void) {
       die("read");
   }
   return c;
+}
+
+int getWindowSize(int *rows, int *cols) {
+  struct winsize ws;
+
+  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+    return -1;
+  }
+  else {
+    *rows = ws.ws_row;
+    *cols = ws.ws_col;
+    return 0;
+  }
 }
 
 /*** Input ***/
