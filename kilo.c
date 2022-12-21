@@ -17,7 +17,11 @@ void editorRefreshScreen(void);
 // Input
 void editorProcessKeypress(void);
 
-struct termios orig_termios;
+struct editorConfig {
+  struct termios orig_termios;
+};
+
+struct editorConfig E;
 
 /*** Init ***/
 
@@ -35,12 +39,12 @@ int main(void) {
 /*** Terminal ***/
 
 void enableRawMode(void) {
-  if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+  if (tcgetattr(STDIN_FILENO, &E.orig_termios) == -1)
     die("tcgetattr");
   
   atexit(disableRawMode);
 
-  struct termios raw = orig_termios;
+  struct termios raw = E.orig_termios;
   
   raw.c_iflag &= ~(BRKINT | INPCK | ISTRIP | ICRNL | IXON);
   raw.c_oflag &= ~(OPOST);
@@ -54,7 +58,7 @@ void enableRawMode(void) {
 }
 
 void disableRawMode(void) {
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1) 
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1) 
     die("tcsetattr");
 }
 
