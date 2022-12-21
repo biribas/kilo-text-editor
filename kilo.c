@@ -13,6 +13,7 @@ void enableRawMode(void);
 void disableRawMode(void);
 void die(const char *str);
 char editorReadKey(void);
+int getCursorPosition(int *rows, int *cols);
 int getWindowSize(int *rows, int *cols);
 // Output
 void editorDrawRows(void);
@@ -93,11 +94,37 @@ char editorReadKey(void) {
   return c;
 }
 
+int getCursorPosition(int *rows, int *cols) {
+  if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
+    return -1;
+
+  char buffer[32];
+  int i = 0;
+ 
+  for (int n = sizeof(buffer) - 1; i < n; i++) {
+    if (read(STDIN_FILENO, &buffer[i], 1) == -1) break;
+    if (buffer[i] == 'R') break;
+  }
+
+  buffer[i] = '\0';
+
+  if (buffer[0] != '\x1b' || buffer[1] != '[')
+    return -1;
+
+  if (sscanf(&buffer[2], "%d;%d", rows, cols) != 2)
+    return -1;
+
+  return 0;
+}
+
 int getWindowSize(int *rows, int *cols) {
   struct winsize ws;
 
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
-    return -1;
+    if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) == -1)
+      return -1;
+
+    return getCursorPosition(rows, cols);
   }
   else {
     *rows = ws.ws_row;
