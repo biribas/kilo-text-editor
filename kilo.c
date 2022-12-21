@@ -105,7 +105,7 @@ int getWindowSize(int *rows, int *cols) {
   }
 }
 
-/*** Input ***/
+/*** Output ***/
 
 void editorRefreshScreen(void) {
   write(STDOUT_FILENO, "\x1b[2J", 4);
