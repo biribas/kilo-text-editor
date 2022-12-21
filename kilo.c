@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <errno.h>
 #include <sys/ioctl.h>
@@ -7,6 +8,18 @@
 #include <unistd.h>
 
 #define CTRL_KEY(k) ((k) & 0x1f)
+#define BUFFER_INIT {NULL, 0}
+
+struct {
+  int rows;
+  int cols;
+  struct termios original_termios;
+} editor;
+
+typedef struct {
+  char *content; 
+  int length;
+} buffer;
 
 // Terminal
 void enableRawMode(void);
@@ -16,20 +29,15 @@ char editorReadKey(void);
 int getCursorPosition(int *rows, int *cols);
 int getWindowSize(int *rows, int *cols);
 // Output
-void editorDrawRows(void);
+void editorDrawRows(buffer *buff);
 void editorRefreshScreen(void);
 // Input
 void editorProcessKeypress(void);
-//Init
+// Init
 void initEditor(void);
-
-struct editorConfig {
-  int rows;
-  int cols;
-  struct termios original_termios;
-};
-
-struct editorConfig editor;
+// Buffer
+void appendBuffer(buffer *, const char *string, int length);
+void freeBuffer(buffer *);
 
 /*** Init ***/
 
@@ -135,20 +143,25 @@ int getWindowSize(int *rows, int *cols) {
 
 /*** Output ***/
 
-void editorDrawRows(void) {
+void editorDrawRows(buffer *buff) {
   for (int i = 0; i < editor.rows - 1; i++)
-    write(STDOUT_FILENO, "~\r\n", 3);
+    appendBuffer(buff, "~\r\n", 3);
 
-  write(STDOUT_FILENO, "~", 1);
+  appendBuffer(buff, "~", 1);
 }
 
 void editorRefreshScreen(void) {
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  buffer buff = BUFFER_INIT;
 
-  editorDrawRows();
+  appendBuffer(&buff, "\x1b[2J", 4);
+  appendBuffer(&buff, "\x1b[H", 3);
 
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  editorDrawRows(&buff);
+
+  appendBuffer(&buff, "\x1b[H", 3);
+
+  write(STDOUT_FILENO, buff.content, buff.length);
+  freeBuffer(&buff);
 }
 
 /*** Input ***/
@@ -163,5 +176,22 @@ void editorProcessKeypress(void) {
       exit(0);
       break;
   }
+}
+
+/*** Buffer ***/
+
+void appendBuffer(buffer *buff, const char *string, int length) {
+  char *new = realloc(buff->content, buff->length + length);
+
+  if (new == NULL)
+    return;
+
+  memcpy(&new[buff->length], string, length);
+  buff->content = new;
+  buff->length += length;
+}
+
+void freeBuffer(buffer *buff) {
+  free(buff->content);
 }
 
