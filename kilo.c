@@ -11,9 +11,16 @@
 #define BUFFER_INIT {NULL, 0}
 #define KILO_VERSION "0.0.1"
 
+enum editorKeys {
+  ARROW_UP = 1000,
+  ARROW_DOWN,
+  ARROW_LEFT,
+  ARROW_RIGHT
+};
+
 struct {
-  int rows;
-  int cols;
+  int cursorX, cursorY;
+  int rows, cols;
   struct termios original_state;
 } editorConfig;
 
@@ -26,13 +33,14 @@ typedef struct {
 void enableRawMode(void);
 void disableRawMode(void);
 void die(const char *str);
-char editorReadKey(void);
+int editorReadKey(void);
 int getCursorPosition(int *rows, int *cols);
 int getWindowSize(int *rows, int *cols);
 // Output
 void editorDrawRows(buffer *buff);
 void editorRefreshScreen(void);
 // Input
+void editorMoveCursor(int);
 void editorProcessKeypress(void);
 // Init
 void initEditor(void);
@@ -55,6 +63,9 @@ int main(void) {
 }
 
 void initEditor(void) {
+  editorConfig.cursorX = 0;
+  editorConfig.cursorY = 0;
+
   if (getWindowSize(&editorConfig.rows, &editorConfig.cols) == -1)
     die("getWindowSize");
 }
@@ -93,13 +104,30 @@ void die(const char *str) {
   exit(1);
 }
 
-char editorReadKey(void) {
+int editorReadKey(void) {
   int n;
   char c;
   while ((n = read(STDIN_FILENO, &c, 1)) != 1) {
     if (n == -1 && errno != EAGAIN)
       die("read");
   }
+
+  if (c == '\x1b') {
+    char sequence[3];
+
+    if (read(STDIN_FILENO, &sequence[0], 1) != 1) return c;
+    if (read(STDIN_FILENO, &sequence[1], 1) != 1) return c;
+
+    if (sequence[0] == '[') {
+      switch (sequence[1]) {
+        case 'A': return ARROW_UP;
+        case 'B': return ARROW_DOWN;
+        case 'C': return ARROW_RIGHT;
+        case 'D': return ARROW_LEFT;
+      } 
+    }
+  }
+
   return c;
 }
 
@@ -184,7 +212,10 @@ void editorRefreshScreen(void) {
 
   editorDrawRows(&buff);
 
-  appendBuffer(&buff, "\x1b[H", 3);
+  char temp[32];
+  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", editorConfig.cursorY + 1, editorConfig.cursorX + 1);
+  appendBuffer(&buff, temp, strlen(temp));
+
   appendBuffer(&buff, "\x1b[?25h", 6);
 
   write(STDOUT_FILENO, buff.content, buff.length);
@@ -193,14 +224,38 @@ void editorRefreshScreen(void) {
 
 /*** Input ***/
 
+void editorMoveCursor(int key) {
+  switch (key) {
+    case ARROW_UP:
+      editorConfig.cursorY--;
+      break;
+    case ARROW_DOWN:
+      editorConfig.cursorY++;
+      break;
+    case ARROW_LEFT:
+      editorConfig.cursorX--;
+      break;
+    case ARROW_RIGHT:
+      editorConfig.cursorX++;
+      break;
+  }
+}
+
 void editorProcessKeypress(void) {
-  char c = editorReadKey();
+  int c = editorReadKey();
 
   switch (c) {
     case CTRL_KEY('q'):
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
+      break;
+
+    case ARROW_UP:
+    case ARROW_DOWN:
+    case ARROW_LEFT:
+    case ARROW_RIGHT:
+      editorMoveCursor(c);
       break;
   }
 }
