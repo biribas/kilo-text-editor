@@ -16,6 +16,8 @@ enum editorKeys {
   ARROW_DOWN,
   ARROW_LEFT,
   ARROW_RIGHT,
+  HOME_KEY,
+  END_KEY,
   PAGE_UP,
   PAGE_DOWN
 };
@@ -118,28 +120,39 @@ int editorReadKey(void) {
     char sequence[3];
 
     if (read(STDIN_FILENO, &sequence[0], 1) != 1) return c;
-
-    if (sequence[0] != '[') return c;
-
     if (read(STDIN_FILENO, &sequence[1], 1) != 1) return c;
 
-    if (sequence[1] >= '0' && sequence[1] <= '9') {
-      if (read(STDIN_FILENO, &sequence[2], 1) != 1) return c;
+    if (sequence[0] == '[') {
+      if (sequence[1] >= '0' && sequence[1] <= '9') {
+        if (read(STDIN_FILENO, &sequence[2], 1) != 1) return c;
 
-      if (sequence[2] == '~') {
-        switch (sequence[1]) {
-          case '5': return PAGE_UP;
-          case '6': return PAGE_DOWN;
+        if (sequence[2] == '~') {
+          switch (sequence[1]) {
+            case '1': return HOME_KEY;
+            case '4': return END_KEY;
+            case '5': return PAGE_UP;
+            case '6': return PAGE_DOWN;
+            case '7': return HOME_KEY;
+            case '8': return END_KEY;
+          }
         }
       }
+      else {
+        switch (sequence[1]) {
+          case 'A': return ARROW_UP;
+          case 'B': return ARROW_DOWN;
+          case 'C': return ARROW_RIGHT;
+          case 'D': return ARROW_LEFT;
+          case 'H': return HOME_KEY;
+          case 'F': return END_KEY;
+        } 
+      }
     }
-    else {
+    else if (sequence[0] == 'O') {
       switch (sequence[1]) {
-        case 'A': return ARROW_UP;
-        case 'B': return ARROW_DOWN;
-        case 'C': return ARROW_RIGHT;
-        case 'D': return ARROW_LEFT;
-      } 
+        case 'H': return HOME_KEY;
+        case 'F': return END_KEY;
+      }
     }
   }
 
@@ -268,6 +281,14 @@ void editorProcessKeypress(void) {
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
+      break;
+
+    case HOME_KEY:
+      editorConfig.cursorX = 0;
+      break;
+
+    case END_KEY:
+      editorConfig.cursorX = editorConfig.cols - 1;
       break;
 
     case PAGE_UP:
