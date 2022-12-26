@@ -13,8 +13,8 @@
 struct {
   int rows;
   int cols;
-  struct termios original_termios;
-} editor;
+  struct termios original_state;
+} terminal;
 
 typedef struct {
   char *content; 
@@ -54,19 +54,19 @@ int main(void) {
 }
 
 void initEditor(void) {
-  if (getWindowSize(&editor.rows, &editor.cols) == -1)
+  if (getWindowSize(&terminal.rows, &terminal.cols) == -1)
     die("getWindowSize");
 }
 
 /*** Terminal ***/
 
 void enableRawMode(void) {
-  if (tcgetattr(STDIN_FILENO, &editor.original_termios) == -1)
+  if (tcgetattr(STDIN_FILENO, &terminal.original_state) == -1)
     die("tcgetattr");
   
   atexit(disableRawMode);
 
-  struct termios raw = editor.original_termios;
+  struct termios raw = terminal.original_state;
   
   raw.c_iflag &= ~(BRKINT | INPCK | ISTRIP | ICRNL | IXON);
   raw.c_oflag &= ~(OPOST);
@@ -80,7 +80,7 @@ void enableRawMode(void) {
 }
 
 void disableRawMode(void) {
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &editor.original_termios) == -1) 
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &terminal.original_state) == -1) 
     die("tcsetattr");
 }
 
@@ -144,7 +144,7 @@ int getWindowSize(int *rows, int *cols) {
 /*** Output ***/
 
 void editorDrawRows(buffer *buff) {
-  for (int i = 0; i < editor.rows - 1; i++)
+  for (int i = 0; i < terminal.rows - 1; i++)
     appendBuffer(buff, "~\r\n", 3);
 
   appendBuffer(buff, "~", 1);
@@ -153,12 +153,14 @@ void editorDrawRows(buffer *buff) {
 void editorRefreshScreen(void) {
   buffer buff = BUFFER_INIT;
 
+  appendBuffer(&buff, "\x1b[?25l", 6);
   appendBuffer(&buff, "\x1b[2J", 4);
   appendBuffer(&buff, "\x1b[H", 3);
 
   editorDrawRows(&buff);
 
   appendBuffer(&buff, "\x1b[H", 3);
+  appendBuffer(&buff, "\x1b[?25h", 6);
 
   write(STDOUT_FILENO, buff.content, buff.length);
   freeBuffer(&buff);
