@@ -15,7 +15,9 @@ enum editorKeys {
   ARROW_UP = 1000,
   ARROW_DOWN,
   ARROW_LEFT,
-  ARROW_RIGHT
+  ARROW_RIGHT,
+  PAGE_UP,
+  PAGE_DOWN
 };
 
 struct {
@@ -116,9 +118,22 @@ int editorReadKey(void) {
     char sequence[3];
 
     if (read(STDIN_FILENO, &sequence[0], 1) != 1) return c;
+
+    if (sequence[0] != '[') return c;
+
     if (read(STDIN_FILENO, &sequence[1], 1) != 1) return c;
 
-    if (sequence[0] == '[') {
+    if (sequence[1] >= '0' && sequence[1] <= '9') {
+      if (read(STDIN_FILENO, &sequence[2], 1) != 1) return c;
+
+      if (sequence[2] == '~') {
+        switch (sequence[1]) {
+          case '5': return PAGE_UP;
+          case '6': return PAGE_DOWN;
+        }
+      }
+    }
+    else {
       switch (sequence[1]) {
         case 'A': return ARROW_UP;
         case 'B': return ARROW_DOWN;
@@ -254,6 +269,15 @@ void editorProcessKeypress(void) {
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
       break;
+
+    case PAGE_UP:
+    case PAGE_DOWN: {
+      int times = editorConfig.rows;
+      int direction = c == PAGE_UP ? ARROW_UP : ARROW_DOWN;
+      while (times--)
+        editorMoveCursor(direction);
+      break;
+    }
 
     case ARROW_UP:
     case ARROW_DOWN:
