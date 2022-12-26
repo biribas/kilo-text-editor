@@ -9,6 +9,7 @@
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define BUFFER_INIT {NULL, 0}
+#define KILO_VERSION "0.0.1"
 
 struct {
   int rows;
@@ -144,14 +145,35 @@ int getWindowSize(int *rows, int *cols) {
 /*** Output ***/
 
 void editorDrawRows(buffer *buff) {
-  for (int i = 0; i < terminal.rows - 1; i++) {
-    appendBuffer(buff, "~", 1);
-    appendBuffer(buff, "\x1b[K", 3);
-    appendBuffer(buff, "\r\n", 2);
-  }
+  for (int i = 0; i < terminal.rows; i++) {
+    if (i == terminal.rows / 3) {
+      char welcome[80];
+      int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
 
-  appendBuffer(buff, "~", 1);
-  appendBuffer(buff, "\x1b[K", 3);
+      if (length > terminal.cols)
+        length = terminal.cols;
+
+      int padding = (terminal.cols - length) / 2;
+
+      if (padding != 0) {
+        appendBuffer(buff, "~", 1);
+        padding--;
+      }
+
+      while (padding--)
+        appendBuffer(buff, " ", 1);
+
+      appendBuffer(buff, welcome, length);
+    }
+    else { 
+      appendBuffer(buff, "~", 1);
+    }
+
+    appendBuffer(buff, "\x1b[K", 3);
+
+    if (i < terminal.rows - 1)
+      appendBuffer(buff, "\r\n", 2);
+  }
 }
 
 void editorRefreshScreen(void) {
