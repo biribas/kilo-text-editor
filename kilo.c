@@ -144,17 +144,20 @@ int getWindowSize(int *rows, int *cols) {
 /*** Output ***/
 
 void editorDrawRows(buffer *buff) {
-  for (int i = 0; i < terminal.rows - 1; i++)
-    appendBuffer(buff, "~\r\n", 3);
+  for (int i = 0; i < terminal.rows - 1; i++) {
+    appendBuffer(buff, "~", 1);
+    appendBuffer(buff, "\x1b[K", 3);
+    appendBuffer(buff, "\r\n", 2);
+  }
 
   appendBuffer(buff, "~", 1);
+  appendBuffer(buff, "\x1b[K", 3);
 }
 
 void editorRefreshScreen(void) {
   buffer buff = BUFFER_INIT;
 
   appendBuffer(&buff, "\x1b[?25l", 6);
-  appendBuffer(&buff, "\x1b[2J", 4);
   appendBuffer(&buff, "\x1b[H", 3);
 
   editorDrawRows(&buff);
