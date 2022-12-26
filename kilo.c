@@ -15,7 +15,7 @@ struct {
   int rows;
   int cols;
   struct termios original_state;
-} terminal;
+} editorConfig;
 
 typedef struct {
   char *content; 
@@ -55,19 +55,19 @@ int main(void) {
 }
 
 void initEditor(void) {
-  if (getWindowSize(&terminal.rows, &terminal.cols) == -1)
+  if (getWindowSize(&editorConfig.rows, &editorConfig.cols) == -1)
     die("getWindowSize");
 }
 
 /*** Terminal ***/
 
 void enableRawMode(void) {
-  if (tcgetattr(STDIN_FILENO, &terminal.original_state) == -1)
+  if (tcgetattr(STDIN_FILENO, &editorConfig.original_state) == -1)
     die("tcgetattr");
   
   atexit(disableRawMode);
 
-  struct termios raw = terminal.original_state;
+  struct termios raw = editorConfig.original_state;
   
   raw.c_iflag &= ~(BRKINT | INPCK | ISTRIP | ICRNL | IXON);
   raw.c_oflag &= ~(OPOST);
@@ -81,7 +81,7 @@ void enableRawMode(void) {
 }
 
 void disableRawMode(void) {
-  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &terminal.original_state) == -1) 
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &editorConfig.original_state) == -1) 
     die("tcsetattr");
 }
 
@@ -145,15 +145,15 @@ int getWindowSize(int *rows, int *cols) {
 /*** Output ***/
 
 void editorDrawRows(buffer *buff) {
-  for (int i = 0; i < terminal.rows; i++) {
-    if (i == terminal.rows / 3) {
+  for (int i = 0; i < editorConfig.rows; i++) {
+    if (i == editorConfig.rows / 3) {
       char welcome[80];
       int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
 
-      if (length > terminal.cols)
-        length = terminal.cols;
+      if (length > editorConfig.cols)
+        length = editorConfig.cols;
 
-      int padding = (terminal.cols - length) / 2;
+      int padding = (editorConfig.cols - length) / 2;
 
       if (padding != 0) {
         appendBuffer(buff, "~", 1);
@@ -171,7 +171,7 @@ void editorDrawRows(buffer *buff) {
 
     appendBuffer(buff, "\x1b[K", 3);
 
-    if (i < terminal.rows - 1)
+    if (i < editorConfig.rows - 1)
       appendBuffer(buff, "\r\n", 2);
   }
 }
