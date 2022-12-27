@@ -1,9 +1,14 @@
+#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -23,16 +28,18 @@ enum editorKeys {
   PAGE_DOWN
 };
 
-struct {
-  int cursorX, cursorY;
-  int rows, cols;
-  struct termios original_state;
-} editorConfig;
-
 typedef struct {
   char *content; 
   int length;
 } buffer;
+
+struct {
+  int cursorX, cursorY;
+  int rows, cols;
+  int numlines;
+  buffer *lines;
+  struct termios original_state;
+} editorConfig;
 
 // Terminal
 void enableRawMode(void);
@@ -41,6 +48,10 @@ void die(const char *str);
 int editorReadKey(void);
 int getCursorPosition(int *rows, int *cols);
 int getWindowSize(int *rows, int *cols);
+// File i/o
+void editorOpen(char *filename);
+// Line operations
+void editorAppendLine(char *line, size_t length);
 // Output
 void editorDrawRows(buffer *buff);
 void editorRefreshScreen(void);
@@ -55,9 +66,13 @@ void freeBuffer(buffer *);
 
 /*** Init ***/
 
-int main(void) {
+int main(int argc, char **argv) {
   enableRawMode();
   initEditor();
+
+  if (argc >= 2) {
+    editorOpen(argv[1]);
+  }
 
   while (1) {
     editorRefreshScreen();
@@ -70,9 +85,46 @@ int main(void) {
 void initEditor(void) {
   editorConfig.cursorX = 0;
   editorConfig.cursorY = 0;
+  editorConfig.numlines = 0;
+  editorConfig.lines = NULL;
 
   if (getWindowSize(&editorConfig.rows, &editorConfig.cols) == -1)
     die("getWindowSize");
+}
+
+/*** File i/o ***/
+
+void editorOpen(char *filename) {
+  FILE *file = fopen(filename, "r");
+  if (file == NULL)
+    die("fopen");
+
+  char *line = NULL;
+  size_t capacity = 0;
+  ssize_t length;
+
+  while ((length = getline(&line, &capacity, file)) != -1) {
+    while (length > 0 && (line[length - 1] == '\n' || line[length - 1] == '\r'))
+      length--;
+    editorAppendLine(line, length);
+  }
+
+  free(line);
+  fclose(file);
+}
+
+/*** Line operations ***/
+
+void editorAppendLine(char *line, size_t length) {
+  editorConfig.lines = realloc(editorConfig.lines, sizeof(buffer) * (editorConfig.numlines + 1));
+  int at = editorConfig.numlines;
+
+  editorConfig.lines[at].length = length;
+  editorConfig.lines[at].content = malloc(length + 1);
+  memcpy(editorConfig.lines[at].content, line, length);
+  editorConfig.lines[at].content[length] = '\0';
+
+  editorConfig.numlines++;
 }
 
 /*** Terminal ***/
@@ -204,27 +256,36 @@ int getWindowSize(int *rows, int *cols) {
 
 void editorDrawRows(buffer *buff) {
   for (int i = 0; i < editorConfig.rows; i++) {
-    if (i == editorConfig.rows / 3) {
-      char welcome[80];
-      int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
+    if (i >= editorConfig.numlines) {
+      if (editorConfig.numlines == 0 && i == editorConfig.rows / 3) {
+        char welcome[80];
+        int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
 
+        if (length > editorConfig.cols)
+          length = editorConfig.cols;
+
+        int padding = (editorConfig.cols - length) / 2;
+
+        if (padding != 0) {
+          appendBuffer(buff, "~", 1);
+          padding--;
+        }
+
+        while (padding--)
+          appendBuffer(buff, " ", 1);
+
+        appendBuffer(buff, welcome, length);
+      }
+      else { 
+        appendBuffer(buff, "~", 1);
+      }
+    }
+    else {
+      int length = editorConfig.lines[i].length;
       if (length > editorConfig.cols)
         length = editorConfig.cols;
 
-      int padding = (editorConfig.cols - length) / 2;
-
-      if (padding != 0) {
-        appendBuffer(buff, "~", 1);
-        padding--;
-      }
-
-      while (padding--)
-        appendBuffer(buff, " ", 1);
-
-      appendBuffer(buff, welcome, length);
-    }
-    else { 
-      appendBuffer(buff, "~", 1);
+      appendBuffer(buff, editorConfig.lines[i].content, length);
     }
 
     appendBuffer(buff, "\x1b[K", 3);
