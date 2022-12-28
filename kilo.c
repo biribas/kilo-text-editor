@@ -337,6 +337,8 @@ void editorRefreshScreen(void) {
 /*** Input ***/
 
 void editorMoveCursor(int key) {
+  buffer *currentLine = (E.cursorY >= E.numlines) ? NULL : &E.lines[E.cursorY];
+
   switch (key) {
     case ARROW_UP:
       if (E.cursorY != 0)
@@ -351,7 +353,8 @@ void editorMoveCursor(int key) {
         E.cursorX--;
       break;
     case ARROW_RIGHT:
-      E.cursorX++;
+      if (currentLine && E.cursorX < currentLine->length)
+        E.cursorX++;
       break;
   }
 }
