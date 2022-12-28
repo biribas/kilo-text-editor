@@ -349,8 +349,13 @@ void editorMoveCursor(int key) {
         E.cursorY++;
       break;
     case ARROW_LEFT:
-      if (E.cursorX != 0)
+      if (E.cursorX != 0) {
         E.cursorX--;
+      }
+      else if (E.cursorY > 0) {
+        E.cursorY--;
+        E.cursorX = E.lines[E.cursorY].length;
+      }
       break;
     case ARROW_RIGHT:
       if (currentLine && E.cursorX < currentLine->length)
