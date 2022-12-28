@@ -15,6 +15,7 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define BUFFER_INIT {NULL, 0}
 #define KILO_VERSION "0.0.1"
+#define TAB_SIZE 8
 
 enum editorKeys {
   ARROW_UP = 1000,
@@ -29,7 +30,12 @@ enum editorKeys {
 };
 
 typedef struct {
-  char *content; 
+  char *content, *renderContent;
+  int length, renderLength;
+} editorLine;
+
+typedef struct {
+  char *content;
   int length;
 } buffer;
 
@@ -38,7 +44,7 @@ struct editorConfig {
   int rows, cols;
   int rowOffset, colOffset;
   int numlines;
-  buffer *lines;
+  editorLine *lines;
   struct termios original_state;
 } E;
 
@@ -52,10 +58,11 @@ int getWindowSize(int *rows, int *cols);
 // File i/o
 void editorOpen(char *filename);
 // Line operations
+void editorUpdateLine(editorLine *);
 void editorAppendLine(char *line, size_t length);
 // Output
 void editorScroll(void);
-void editorDrawRows(buffer *buff);
+void editorDrawLines(buffer *buff);
 void editorRefreshScreen(void);
 // Input
 void editorMoveCursor(int);
@@ -119,14 +126,44 @@ void editorOpen(char *filename) {
 
 /*** Line operations ***/
 
+void editorUpdateLine(editorLine *line) {
+  int tabs = 0;
+  for (int i = 0; i < line->length; i++) {
+    if (line->content[i] == '\t')
+      tabs++;
+  }
+  
+  free(line->renderContent);
+  line->renderContent = malloc(line->length + (TAB_SIZE - 1) * tabs + 1);
+
+  int index = 0;
+  for (int i = 0; i < line->length; i++) {
+    if (line->content[i] == '\t') {
+      line->renderContent[index++] = ' ';
+      while (index % TAB_SIZE != 0)
+        line->renderContent[index++] = ' ';
+    }
+    else {
+      line->renderContent[index++] = line->content[i];
+    }
+  }
+
+  line->renderContent[index] = '\0';
+  line->renderLength = index;
+}
+
 void editorAppendLine(char *line, size_t length) {
-  E.lines = realloc(E.lines, sizeof(buffer) * (E.numlines + 1));
+  E.lines = realloc(E.lines, sizeof(editorLine) * (E.numlines + 1));
   int at = E.numlines;
 
   E.lines[at].length = length;
   E.lines[at].content = malloc(length + 1);
   memcpy(E.lines[at].content, line, length);
   E.lines[at].content[length] = '\0';
+
+  E.lines[at].renderContent = NULL;
+  E.lines[at].renderLength = 0;
+  editorUpdateLine(&E.lines[at]);
 
   E.numlines++;
 }
@@ -270,7 +307,7 @@ void editorScroll(void) {
     E.colOffset = E.cursorX - E.cols + 1;
 }
 
-void editorDrawRows(buffer *buff) {
+void editorDrawLines(buffer *buff) {
   for (int i = 0; i < E.rows; i++) {
     int filerow = i + E.rowOffset;
     if (filerow >= E.numlines) {
@@ -298,13 +335,13 @@ void editorDrawRows(buffer *buff) {
       }
     }
     else {
-      int length = E.lines[filerow].length - E.colOffset;
+      int length = E.lines[filerow].renderLength - E.colOffset;
       if (length < 0)
         length = 0;
       if (length > E.cols)
         length = E.cols;
 
-      appendBuffer(buff, &E.lines[filerow].content[E.colOffset], length);
+      appendBuffer(buff, &E.lines[filerow].renderContent[E.colOffset], length);
     }
 
     appendBuffer(buff, "\x1b[K", 3);
@@ -322,7 +359,7 @@ void editorRefreshScreen(void) {
   appendBuffer(&buff, "\x1b[?25l", 6);
   appendBuffer(&buff, "\x1b[H", 3);
 
-  editorDrawRows(&buff);
+  editorDrawLines(&buff);
 
   char temp[32];
   snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.cursorX - E.colOffset) + 1);
@@ -337,7 +374,7 @@ void editorRefreshScreen(void) {
 /*** Input ***/
 
 void editorMoveCursor(int key) {
-  buffer *currentLine = (E.cursorY >= E.numlines) ? NULL : &E.lines[E.cursorY];
+  editorLine *currentLine = (E.cursorY >= E.numlines) ? NULL : &E.lines[E.cursorY];
 
   switch (key) {
     case ARROW_UP:
