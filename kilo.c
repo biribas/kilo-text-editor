@@ -36,7 +36,7 @@ typedef struct {
 struct editorConfig {
   int cursorX, cursorY;
   int rows, cols;
-  int rowOffset;
+  int rowOffset, colOffset;
   int numlines;
   buffer *lines;
   struct termios original_state;
@@ -88,6 +88,7 @@ void initEditor(void) {
   E.cursorX = 0;
   E.cursorY = 0;
   E.rowOffset = 0;
+  E.colOffset = 0;
   E.numlines = 0;
   E.lines = NULL;
 
@@ -258,12 +259,15 @@ int getWindowSize(int *rows, int *cols) {
 /*** Output ***/
 
 void editorScroll(void) {
-  if (E.cursorY < E.rowOffset) {
+  if (E.cursorY < E.rowOffset)
     E.rowOffset = E.cursorY;
-  }
-  else if (E.cursorY >= E.rowOffset + E.rows) {
+  else if (E.cursorY >= E.rowOffset + E.rows)
     E.rowOffset = E.cursorY - E.rows + 1;
-  }
+
+  if (E.cursorX < E.colOffset)
+    E.colOffset = E.cursorX;
+  else if (E.cursorX >= E.colOffset + E.cols)
+    E.colOffset = E.cursorX - E.cols + 1;
 }
 
 void editorDrawRows(buffer *buff) {
@@ -294,11 +298,13 @@ void editorDrawRows(buffer *buff) {
       }
     }
     else {
-      int length = E.lines[filerow].length;
+      int length = E.lines[filerow].length - E.colOffset;
+      if (length < 0)
+        length = 0;
       if (length > E.cols)
         length = E.cols;
 
-      appendBuffer(buff, E.lines[filerow].content, length);
+      appendBuffer(buff, &E.lines[filerow].content[E.colOffset], length);
     }
 
     appendBuffer(buff, "\x1b[K", 3);
@@ -319,7 +325,7 @@ void editorRefreshScreen(void) {
   editorDrawRows(&buff);
 
   char temp[32];
-  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, E.cursorX + 1);
+  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.cursorX - E.colOffset) + 1);
   appendBuffer(&buff, temp, strlen(temp));
 
   appendBuffer(&buff, "\x1b[?25h", 6);
@@ -345,8 +351,7 @@ void editorMoveCursor(int key) {
         E.cursorX--;
       break;
     case ARROW_RIGHT:
-      if (E.cursorX != E.cols - 1)
-        E.cursorX++;
+      E.cursorX++;
       break;
   }
 }
