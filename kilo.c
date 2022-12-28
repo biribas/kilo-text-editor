@@ -41,7 +41,7 @@ typedef struct {
 
 struct editorConfig {
   int cursorX, cursorY;
-  int renderCursorX;
+  int rCursorX;
   int rows, cols;
   int rowOffset, colOffset;
   int numlines;
@@ -59,6 +59,7 @@ int getWindowSize(int *rows, int *cols);
 // File i/o
 void editorOpen(char *filename);
 // Line operations
+int editorConvertCursorX(editorLine *line, int cursorX);
 void editorUpdateLine(editorLine *);
 void editorAppendLine(char *line, size_t length);
 // Output
@@ -95,6 +96,7 @@ int main(int argc, char **argv) {
 void initEditor(void) {
   E.cursorX = 0;
   E.cursorY = 0;
+  E.rCursorX = 0;
   E.rowOffset = 0;
   E.colOffset = 0;
   E.numlines = 0;
@@ -126,6 +128,17 @@ void editorOpen(char *filename) {
 }
 
 /*** Line operations ***/
+
+int editorConvertCursorX(editorLine *line, int cursorX) {
+  int rx = 0;
+  for (int i = 0; i < cursorX; i++) {
+    if (line->content[i] == '\t')
+      rx += TAB_SIZE - (rx % TAB_SIZE);
+    else
+      rx++;
+  }
+  return rx;
+}
 
 void editorUpdateLine(editorLine *line) {
   int tabs = 0;
@@ -296,15 +309,19 @@ int getWindowSize(int *rows, int *cols) {
 /*** Output ***/
 
 void editorScroll(void) {
-  if (E.cursorY < E.rowOffset)
+  if (E.cursorY < E.rowOffset) {
     E.rowOffset = E.cursorY;
-  else if (E.cursorY >= E.rowOffset + E.rows)
+  }
+  else if (E.cursorY >= E.rowOffset + E.rows) {
     E.rowOffset = E.cursorY - E.rows + 1;
+  }
 
-  if (E.cursorX < E.colOffset)
-    E.colOffset = E.cursorX;
-  else if (E.cursorX >= E.colOffset + E.cols)
-    E.colOffset = E.cursorX - E.cols + 1;
+  if (E.rCursorX < E.colOffset) {
+    E.colOffset = E.rCursorX;
+  }
+  else if (E.rCursorX >= E.colOffset + E.cols) {
+    E.colOffset = E.rCursorX - E.cols + 1;
+  }
 }
 
 void editorDrawLines(buffer *buff) {
@@ -352,6 +369,8 @@ void editorDrawLines(buffer *buff) {
 }
 
 void editorRefreshScreen(void) {
+  E.rCursorX = E.cursorY < E.numlines ? editorConvertCursorX(&E.lines[E.cursorY], E.cursorX) : 0;
+
   editorScroll();
 
   buffer buff = BUFFER_INIT;
@@ -362,7 +381,7 @@ void editorRefreshScreen(void) {
   editorDrawLines(&buff);
 
   char temp[32];
-  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.cursorX - E.colOffset) + 1);
+  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.rCursorX - E.colOffset) + 1);
   appendBuffer(&buff, temp, strlen(temp));
 
   appendBuffer(&buff, "\x1b[?25h", 6);
