@@ -36,6 +36,7 @@ typedef struct {
 struct editorConfig {
   int cursorX, cursorY;
   int rows, cols;
+  int rowOffset;
   int numlines;
   buffer *lines;
   struct termios original_state;
@@ -53,6 +54,7 @@ void editorOpen(char *filename);
 // Line operations
 void editorAppendLine(char *line, size_t length);
 // Output
+void editorScroll(void);
 void editorDrawRows(buffer *buff);
 void editorRefreshScreen(void);
 // Input
@@ -85,6 +87,7 @@ int main(int argc, char **argv) {
 void initEditor(void) {
   E.cursorX = 0;
   E.cursorY = 0;
+  E.rowOffset = 0;
   E.numlines = 0;
   E.lines = NULL;
 
@@ -254,9 +257,19 @@ int getWindowSize(int *rows, int *cols) {
 
 /*** Output ***/
 
+void editorScroll(void) {
+  if (E.cursorY < E.rowOffset) {
+    E.rowOffset = E.cursorY;
+  }
+  else if (E.cursorY >= E.rowOffset + E.rows) {
+    E.rowOffset = E.cursorY - E.rows + 1;
+  }
+}
+
 void editorDrawRows(buffer *buff) {
   for (int i = 0; i < E.rows; i++) {
-    if (i >= E.numlines) {
+    int filerow = i + E.rowOffset;
+    if (filerow >= E.numlines) {
       if (E.numlines == 0 && i == E.rows / 3) {
         char welcome[80];
         int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
@@ -281,11 +294,11 @@ void editorDrawRows(buffer *buff) {
       }
     }
     else {
-      int length = E.lines[i].length;
+      int length = E.lines[filerow].length;
       if (length > E.cols)
         length = E.cols;
 
-      appendBuffer(buff, E.lines[i].content, length);
+      appendBuffer(buff, E.lines[filerow].content, length);
     }
 
     appendBuffer(buff, "\x1b[K", 3);
@@ -296,6 +309,8 @@ void editorDrawRows(buffer *buff) {
 }
 
 void editorRefreshScreen(void) {
+  editorScroll();
+
   buffer buff = BUFFER_INIT;
 
   appendBuffer(&buff, "\x1b[?25l", 6);
@@ -304,7 +319,7 @@ void editorRefreshScreen(void) {
   editorDrawRows(&buff);
 
   char temp[32];
-  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", E.cursorY + 1, E.cursorX + 1);
+  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, E.cursorX + 1);
   appendBuffer(&buff, temp, strlen(temp));
 
   appendBuffer(&buff, "\x1b[?25h", 6);
@@ -322,7 +337,7 @@ void editorMoveCursor(int key) {
         E.cursorY--;
       break;
     case ARROW_DOWN:
-      if (E.cursorY != E.rows - 1)
+      if (E.cursorY < E.numlines)
         E.cursorY++;
       break;
     case ARROW_LEFT:
