@@ -41,6 +41,7 @@ typedef struct {
 
 struct editorConfig {
   int cursorX, cursorY;
+  int renderCursorX;
   int rows, cols;
   int rowOffset, colOffset;
   int numlines;
@@ -133,7 +134,6 @@ void editorUpdateLine(editorLine *line) {
       tabs++;
   }
   
-  free(line->renderContent);
   line->renderContent = malloc(line->length + (TAB_SIZE - 1) * tabs + 1);
 
   int index = 0;
