@@ -358,8 +358,15 @@ void editorMoveCursor(int key) {
       }
       break;
     case ARROW_RIGHT:
-      if (currentLine && E.cursorX < currentLine->length)
+      if (!currentLine) break;
+
+      if (E.cursorX < currentLine->length) {
         E.cursorX++;
+      }
+      else {
+        E.cursorY++;
+        E.cursorX = 0;
+      }
       break;
   }
 
