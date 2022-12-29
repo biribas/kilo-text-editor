@@ -448,7 +448,8 @@ void editorProcessKeypress(void) {
       break;
 
     case END_KEY:
-      E.cursorX = E.cols - 1;
+      if (E.cursorY < E.numlines)
+        E.cursorX = E.lines[E.cursorY].length;
       break;
 
     case PAGE_UP:
