@@ -454,6 +454,15 @@ void editorProcessKeypress(void) {
 
     case PAGE_UP:
     case PAGE_DOWN: {
+      if (c == PAGE_UP) {
+        E.cursorY = E.rowOffset;
+      }
+      else {
+        E.cursorY = E.rowOffset + E.rows - 1;  
+        if (E.cursorY > E.numlines)
+          E.cursorY = E.numlines;
+      } 
+
       int times = E.rows;
       int direction = c == PAGE_UP ? ARROW_UP : ARROW_DOWN;
       while (times--)
