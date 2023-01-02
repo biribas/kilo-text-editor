@@ -46,6 +46,7 @@ struct editorConfig {
   int rowOffset, colOffset;
   int numlines;
   editorLine *lines;
+  char *filename;
   struct termios original_state;
 } E;
 
@@ -65,6 +66,7 @@ void editorAppendLine(char *line, size_t length);
 // Output
 void editorScroll(void);
 void editorDrawLines(buffer *buff);
+void editorDrawStatusBar(buffer *buff);
 void editorRefreshScreen(void);
 // Input
 void editorMoveCursor(int);
@@ -101,14 +103,20 @@ void initEditor(void) {
   E.colOffset = 0;
   E.numlines = 0;
   E.lines = NULL;
+  E.filename = NULL;
 
   if (getWindowSize(&E.screenRows, &E.screenCols) == -1)
     die("getWindowSize");
+
+  E.screenRows--;
 }
 
 /*** File i/o ***/
 
 void editorOpen(char *filename) {
+  free(E.filename);
+  E.filename = strdup(filename);
+
   FILE *file = fopen(filename, "r");
   if (file == NULL)
     die("fopen");
@@ -366,6 +374,35 @@ void editorDrawLines(buffer *buff) {
   }
 }
 
+void editorDrawStatusBar(buffer *buff) {
+  appendBuffer(buff, "\x1b[7m", 4); // Inverted colors
+
+  char status[80], positionStatus[80];
+
+  char *filename = E.filename ? E.filename : "[No name]";
+  int sLen = snprintf(status, sizeof(status), " %.20s - %d lines ", filename, E.numlines);
+
+  char percentage[80];
+  sprintf(percentage, "%d%% ", 100 * (E.cursorY + 1) / E.numlines);
+
+  int pLen = snprintf(positionStatus, sizeof(positionStatus), " %d:%d   %s", E.cursorY + 1, E.rCursorX + 1, E.cursorY == 0 ? "Top " : percentage); 
+
+  if (sLen > E.screenCols)
+    sLen = E.screenCols;
+
+  appendBuffer(buff, status, sLen);
+
+  for (; sLen < E.screenCols; sLen++) {
+    if (E.screenCols - sLen == pLen) {
+      appendBuffer(buff, positionStatus, pLen);
+      break;
+    }
+    appendBuffer(buff, " ", 1);
+  }
+
+  appendBuffer(buff, "\x1b[m", 3); // Normal formating
+}
+
 void editorRefreshScreen(void) {
   E.rCursorX = E.cursorY < E.numlines ? editorConvertCursorX(&E.lines[E.cursorY], E.cursorX) : 0;
 
@@ -377,6 +414,7 @@ void editorRefreshScreen(void) {
   appendBuffer(&buff, "\x1b[H", 3);
 
   editorDrawLines(&buff);
+  editorDrawStatusBar(&buff);
 
   char temp[32];
   snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.rCursorX - E.colOffset) + 1);
