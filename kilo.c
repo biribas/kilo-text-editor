@@ -42,7 +42,7 @@ typedef struct {
 struct editorConfig {
   int cursorX, cursorY;
   int rCursorX;
-  int rows, cols;
+  int screenRows, screenCols;
   int rowOffset, colOffset;
   int numlines;
   editorLine *lines;
@@ -102,7 +102,7 @@ void initEditor(void) {
   E.numlines = 0;
   E.lines = NULL;
 
-  if (getWindowSize(&E.rows, &E.cols) == -1)
+  if (getWindowSize(&E.screenRows, &E.screenCols) == -1)
     die("getWindowSize");
 }
 
@@ -312,30 +312,30 @@ void editorScroll(void) {
   if (E.cursorY < E.rowOffset) {
     E.rowOffset = E.cursorY;
   }
-  else if (E.cursorY >= E.rowOffset + E.rows) {
-    E.rowOffset = E.cursorY - E.rows + 1;
+  else if (E.cursorY >= E.rowOffset + E.screenRows) {
+    E.rowOffset = E.cursorY - E.screenRows + 1;
   }
 
   if (E.rCursorX < E.colOffset) {
     E.colOffset = E.rCursorX;
   }
-  else if (E.rCursorX >= E.colOffset + E.cols) {
-    E.colOffset = E.rCursorX - E.cols + 1;
+  else if (E.rCursorX >= E.colOffset + E.screenCols) {
+    E.colOffset = E.rCursorX - E.screenCols + 1;
   }
 }
 
 void editorDrawLines(buffer *buff) {
-  for (int i = 0; i < E.rows; i++) {
+  for (int i = 0; i < E.screenRows; i++) {
     int filerow = i + E.rowOffset;
     if (filerow >= E.numlines) {
-      if (E.numlines == 0 && i == E.rows / 3) {
+      if (E.numlines == 0 && i == E.screenRows / 3) {
         char welcome[80];
         int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
 
-        if (length > E.cols)
-          length = E.cols;
+        if (length > E.screenCols)
+          length = E.screenCols;
 
-        int padding = (E.cols - length) / 2;
+        int padding = (E.screenCols - length) / 2;
 
         if (padding != 0) {
           appendBuffer(buff, "~", 1);
@@ -355,16 +355,14 @@ void editorDrawLines(buffer *buff) {
       int length = E.lines[filerow].renderLength - E.colOffset;
       if (length < 0)
         length = 0;
-      if (length > E.cols)
-        length = E.cols;
+      if (length > E.screenCols)
+        length = E.screenCols;
 
       appendBuffer(buff, &E.lines[filerow].renderContent[E.colOffset], length);
     }
 
     appendBuffer(buff, "\x1b[K", 3);
-
-    if (i < E.rows - 1)
-      appendBuffer(buff, "\r\n", 2);
+    appendBuffer(buff, "\r\n", 2);
   }
 }
 
@@ -458,12 +456,12 @@ void editorProcessKeypress(void) {
         E.cursorY = E.rowOffset;
       }
       else {
-        E.cursorY = E.rowOffset + E.rows - 1;  
+        E.cursorY = E.rowOffset + E.screenRows - 1;  
         if (E.cursorY > E.numlines)
           E.cursorY = E.numlines;
       } 
 
-      int times = E.rows;
+      int times = E.screenRows;
       int direction = c == PAGE_UP ? ARROW_UP : ARROW_DOWN;
       while (times--)
         editorMoveCursor(direction);
