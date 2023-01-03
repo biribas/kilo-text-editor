@@ -5,11 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <ctype.h>
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -47,6 +49,8 @@ struct editorConfig {
   int numlines;
   editorLine *lines;
   char *filename;
+  char statusmsg[80];
+  time_t statusmsg_time;
   struct termios original_state;
 } E;
 
@@ -65,9 +69,11 @@ void editorUpdateLine(editorLine *);
 void editorAppendLine(char *line, size_t length);
 // Output
 void editorScroll(void);
-void editorDrawLines(buffer *buff);
-void editorDrawStatusBar(buffer *buff);
+void editorDrawLines(buffer *);
+void editorDrawStatusBar(buffer *);
+void editorDrawMessageBar(buffer *);
 void editorRefreshScreen(void);
+void editorSetStatusMessage(const char *format, ...);
 // Input
 void editorMoveCursor(int);
 void editorProcessKeypress(void);
@@ -87,6 +93,8 @@ int main(int argc, char **argv) {
     editorOpen(argv[1]);
   }
 
+  editorSetStatusMessage("HELP: Ctrl-Q = quit");
+
   while (1) {
     editorRefreshScreen();
     editorProcessKeypress();
@@ -104,11 +112,13 @@ void initEditor(void) {
   E.numlines = 0;
   E.lines = NULL;
   E.filename = NULL;
+  E.statusmsg[0] = '\0';
+  E.statusmsg_time = 0;
 
   if (getWindowSize(&E.screenRows, &E.screenCols) == -1)
     die("getWindowSize");
 
-  E.screenRows--;
+  E.screenRows -= 2;
 }
 
 /*** File i/o ***/
@@ -401,6 +411,17 @@ void editorDrawStatusBar(buffer *buff) {
   }
 
   appendBuffer(buff, "\x1b[m", 3); // Normal formating
+  appendBuffer(buff, "\r\n", 2);
+}
+
+void editorDrawMessageBar(buffer *buff) {
+  appendBuffer(buff, "\x1b[K", 3);
+  int len = strlen(E.statusmsg);
+  if (len > E.screenCols)
+    len = E.screenCols;
+
+  if (len && time(NULL) - E.statusmsg_time < 5)
+    appendBuffer(buff, E.statusmsg, len);
 }
 
 void editorRefreshScreen(void) {
@@ -415,6 +436,7 @@ void editorRefreshScreen(void) {
 
   editorDrawLines(&buff);
   editorDrawStatusBar(&buff);
+  editorDrawMessageBar(&buff);
 
   char temp[32];
   snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.rCursorX - E.colOffset) + 1);
@@ -424,6 +446,14 @@ void editorRefreshScreen(void) {
 
   write(STDOUT_FILENO, buff.content, buff.length);
   freeBuffer(&buff);
+}
+
+void editorSetStatusMessage(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  vsnprintf(E.statusmsg, sizeof(E.statusmsg), format, args);
+  va_end(args);
+  E.statusmsg_time = time(NULL);
 }
 
 /*** Input ***/
