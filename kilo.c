@@ -387,24 +387,32 @@ void editorDrawLines(buffer *buff) {
 void editorDrawStatusBar(buffer *buff) {
   appendBuffer(buff, "\x1b[7m", 4); // Inverted colors
 
-  char status[80], positionStatus[80];
+  char info[80], position[80];
 
   char *filename = E.filename ? E.filename : "[No name]";
-  int sLen = snprintf(status, sizeof(status), " %.20s - %d lines ", filename, E.numlines);
+  int infoLen = snprintf(info, sizeof(info), " %.20s - %d lines ", filename, E.numlines);
 
-  char percentage[80];
-  sprintf(percentage, "%d%% ", 100 * (E.cursorY + 1) / E.numlines);
+  char percent[80];
+  if (E.numlines == 0 || E.cursorY == 0) {
+    sprintf(percent, "Top");
+  }
+  else if (E.cursorY >= E.numlines - 1) {
+    sprintf(percent, "Bot");
+  }
+  else {
+    sprintf(percent, "%d%%", 100 * (E.cursorY + 1) / E.numlines);
+  }
 
-  int pLen = snprintf(positionStatus, sizeof(positionStatus), " %d:%d   %s", E.cursorY + 1, E.rCursorX + 1, E.cursorY == 0 ? "Top " : percentage); 
+  int posLen = snprintf(position, sizeof(position), " %d:%d   %s ", E.cursorY + 1, E.rCursorX + 1, percent);
 
-  if (sLen > E.screenCols)
-    sLen = E.screenCols;
+  if (infoLen > E.screenCols)
+    infoLen = E.screenCols;
 
-  appendBuffer(buff, status, sLen);
+  appendBuffer(buff, info, infoLen);
 
-  for (; sLen < E.screenCols; sLen++) {
-    if (E.screenCols - sLen == pLen) {
-      appendBuffer(buff, positionStatus, pLen);
+  for (; infoLen < E.screenCols; infoLen++) {
+    if (E.screenCols - infoLen == posLen) {
+      appendBuffer(buff, position, posLen);
       break;
     }
     appendBuffer(buff, " ", 1);
