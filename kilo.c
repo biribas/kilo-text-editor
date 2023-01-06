@@ -43,6 +43,7 @@ typedef struct {
 
 struct editorConfig {
   int cursorX, cursorY;
+  int highestLastX;
   int rCursorX;
   int screenRows, screenCols;
   int rowOffset, colOffset;
@@ -106,6 +107,7 @@ int main(int argc, char **argv) {
 void initEditor(void) {
   E.cursorX = 0;
   E.cursorY = 0;
+  E.highestLastX = 0;
   E.rCursorX = 0;
   E.rowOffset = 0;
   E.colOffset = 0;
@@ -473,11 +475,15 @@ void editorMoveCursor(int key) {
     case ARROW_UP:
       if (E.cursorY != 0)
         E.cursorY--;
+      E.cursorX = E.highestLastX;
       break;
+
     case ARROW_DOWN:
       if (E.cursorY < E.numlines)
         E.cursorY++;
+      E.cursorX = E.highestLastX;
       break;
+
     case ARROW_LEFT:
       if (E.cursorX != 0) {
         E.cursorX--;
@@ -486,7 +492,9 @@ void editorMoveCursor(int key) {
         E.cursorY--;
         E.cursorX = E.lines[E.cursorY].length;
       }
+      E.highestLastX = E.cursorX;
       break;
+
     case ARROW_RIGHT:
       if (!currentLine) break;
 
@@ -497,6 +505,7 @@ void editorMoveCursor(int key) {
         E.cursorY++;
         E.cursorX = 0;
       }
+      E.highestLastX = E.cursorX;
       break;
   }
 
