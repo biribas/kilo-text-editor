@@ -18,7 +18,6 @@
 #define BUFFER_INIT {NULL, 0}
 #define KILO_VERSION "0.0.1"
 #define TAB_SIZE 8
-#define ROWOFFSET_GAP 8
 
 enum editorKeys {
   ARROW_UP = 1000,
@@ -328,14 +327,15 @@ int getWindowSize(int *rows, int *cols) {
 /*** Output ***/
 
 void editorScroll(void) {
+  int rowOffsetGap = E.screenRows * 0.25;
   int gap;
 
-  if (E.cursorY < ROWOFFSET_GAP) {
+  if (E.cursorY < rowOffsetGap) {
     gap = E.cursorY;
-  } else if (E.cursorY > E.numlines - ROWOFFSET_GAP) {
+  } else if (E.cursorY > E.numlines - rowOffsetGap) {
     gap = E.numlines - E.cursorY;
   } else {
-    gap = ROWOFFSET_GAP;
+    gap = rowOffsetGap;
   }
 
   if (E.cursorY < E.rowOffset + gap) {
