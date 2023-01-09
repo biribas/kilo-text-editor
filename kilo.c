@@ -329,17 +329,26 @@ int getWindowSize(int *rows, int *cols) {
 /*** Output ***/
 
 void editorScroll(void) {
-  if (E.cursorY < E.rowOffset) {
-    E.rowOffset = E.cursorY;
+  int rowOffsetGap = E.screenRows * 0.25;
+  int gap;
+
+  if (E.cursorY < rowOffsetGap) {
+    gap = E.cursorY;
+  } else if (E.cursorY > E.numlines - rowOffsetGap) {
+    gap = E.numlines - E.cursorY;
+  } else {
+    gap = rowOffsetGap;
   }
-  else if (E.cursorY >= E.rowOffset + E.screenRows) {
-    E.rowOffset = E.cursorY - E.screenRows + 1;
+
+  if (E.cursorY < E.rowOffset + gap) {
+    E.rowOffset = E.cursorY - gap;
+  } else if (E.cursorY > E.rowOffset + E.screenRows - 1 - gap) {
+    E.rowOffset = E.cursorY - E.screenRows + 1 + gap;
   }
 
   if (E.rCursorX < E.colOffset) {
     E.colOffset = E.rCursorX;
-  }
-  else if (E.rCursorX >= E.colOffset + E.screenCols) {
+  } else if (E.rCursorX > E.colOffset + E.screenCols - 1) {
     E.colOffset = E.rCursorX - E.screenCols + 1;
   }
 }
