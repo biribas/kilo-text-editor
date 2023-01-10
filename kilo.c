@@ -69,7 +69,8 @@ int editorConvertCursorX(editorLine *line, int cursorX);
 void editorUpdateLine(editorLine *);
 void editorAppendLine(char *line, size_t length);
 // Output
-void editorScroll(void);
+void editorScrollX(void);
+void editorScrollY(void);
 void editorDrawLines(buffer *);
 void editorDrawStatusBar(buffer *);
 void editorDrawMessageBar(buffer *);
@@ -328,28 +329,46 @@ int getWindowSize(int *rows, int *cols) {
 
 /*** Output ***/
 
-void editorScroll(void) {
-  int rowOffsetGap = E.screenRows * 0.25;
+void editorScrollX(void) {
   int gap;
+
+  const int colOffsetGap = E.screenCols * 0.25;
+
+  if (E.rCursorX < colOffsetGap) {
+    gap = E.rCursorX;
+  }
+  else {
+    gap = colOffsetGap;
+  }
+
+  if (E.rCursorX < E.colOffset + gap) {
+    E.colOffset = E.rCursorX - gap;
+  }
+  else if (E.rCursorX > E.colOffset + E.screenCols - 1 - gap) {
+    E.colOffset = E.rCursorX - E.screenCols + 1 + gap;
+  }
+}
+
+void editorScrollY(void) {
+  int gap;
+
+  const int rowOffsetGap = E.screenRows * 0.25;
 
   if (E.cursorY < rowOffsetGap) {
     gap = E.cursorY;
-  } else if (E.cursorY > E.numlines - rowOffsetGap) {
+  }
+  else if (E.cursorY > E.numlines - rowOffsetGap) {
     gap = E.numlines - E.cursorY;
-  } else {
+  }
+  else {
     gap = rowOffsetGap;
   }
 
   if (E.cursorY < E.rowOffset + gap) {
     E.rowOffset = E.cursorY - gap;
-  } else if (E.cursorY > E.rowOffset + E.screenRows - 1 - gap) {
-    E.rowOffset = E.cursorY - E.screenRows + 1 + gap;
   }
-
-  if (E.rCursorX < E.colOffset) {
-    E.colOffset = E.rCursorX;
-  } else if (E.rCursorX > E.colOffset + E.screenCols - 1) {
-    E.colOffset = E.rCursorX - E.screenCols + 1;
+  else if (E.cursorY > E.rowOffset + E.screenRows - 1 - gap) {
+    E.rowOffset = E.cursorY - E.screenRows + 1 + gap;
   }
 }
 
@@ -446,7 +465,8 @@ void editorDrawMessageBar(buffer *buff) {
 void editorRefreshScreen(void) {
   E.rCursorX = E.cursorY < E.numlines ? editorConvertCursorX(&E.lines[E.cursorY], E.cursorX) : 0;
 
-  editorScroll();
+  editorScrollX();
+  editorScrollY();
 
   buffer buff = BUFFER_INIT;
 
