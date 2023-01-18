@@ -68,6 +68,9 @@ void editorOpen(char *filename);
 int editorConvertCursorX(editorLine *line, int cursorX);
 void editorUpdateLine(editorLine *);
 void editorAppendLine(char *line, size_t length);
+void editorLineInsertChar(editorLine *line, int at, int c);
+// Editor operations
+void editorInsertChar(int c);
 // Output
 void editorScrollX(void);
 void editorScrollY(void);
@@ -200,6 +203,26 @@ void editorAppendLine(char *line, size_t length) {
   editorUpdateLine(&E.lines[at]);
 
   E.numlines++;
+}
+
+void editorLineInsertChar(editorLine *line, int at, int c) {
+  if (at < 0 || at > line->length) 
+    at = line->length;
+
+  line->content = realloc(line->content, line->length + 2);
+  memmove(&line->content[at + 1], &line->content[at], line->length - at + 1);
+  line->length++;
+  line->content[at] = c;
+  editorUpdateLine(line);
+}
+
+/** Editor operations **/
+void editorInsertChar(int c) {
+  if (E.cursorY == E.numlines)
+    editorAppendLine("", 0);
+
+  editorLineInsertChar(&E.lines[E.cursorY], E.cursorX, c);
+  E.cursorX++;
 }
 
 /*** Terminal ***/
@@ -587,6 +610,10 @@ void editorProcessKeypress(void) {
     case ARROW_LEFT:
     case ARROW_RIGHT:
       editorMoveCursor(c);
+      break;
+
+    default:
+      editorInsertChar(c);
       break;
   }
 }
