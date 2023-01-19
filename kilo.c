@@ -20,6 +20,7 @@
 #define TAB_SIZE 8
 
 enum editorKeys {
+  BACKSPACE = 127,
   ARROW_UP = 1000,
   ARROW_DOWN,
   ARROW_LEFT,
@@ -572,6 +573,10 @@ void editorProcessKeypress(void) {
   int c = editorReadKey();
 
   switch (c) {
+    case '\r':
+      // TODO
+      break;
+    
     case CTRL_KEY('q'):
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
@@ -585,6 +590,12 @@ void editorProcessKeypress(void) {
     case END_KEY:
       if (E.cursorY < E.numlines)
         E.cursorX = E.lines[E.cursorY].length;
+      break;
+
+    case BACKSPACE:
+    case CTRL_KEY('h'):
+    case DEL_KEY:
+      // TODO
       break;
 
     case PAGE_UP:
@@ -612,6 +623,10 @@ void editorProcessKeypress(void) {
       editorMoveCursor(c);
       break;
 
+    case CTRL_KEY('l'):
+    case '\x1b':
+      break;
+    
     default:
       editorInsertChar(c);
       break;
