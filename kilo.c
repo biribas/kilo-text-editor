@@ -74,8 +74,10 @@ int editorConvertCursorX(editorLine *line, int cursorX);
 void editorUpdateLine(editorLine *);
 void editorAppendLine(char *line, size_t length);
 void editorLineInsertChar(editorLine *line, int at, int c);
+void editorLineDeleteChar(editorLine *line, int at);
 // Editor operations
 void editorInsertChar(int c);
+void editorDeleteChar(void);
 // Output
 void editorScrollX(void);
 void editorScrollY(void);
@@ -266,6 +268,15 @@ void editorLineInsertChar(editorLine *line, int at, int c) {
   editorUpdateLine(line);
 }
 
+void editorLineDeleteChar(editorLine *line, int at) {
+  if (at < 0 || at > line->length)
+    return;
+
+  memmove(&line->content[at], &line->content[at + 1], line->length - at);
+  line->length--; 
+  editorUpdateLine(line);
+}
+
 /** Editor operations **/
 void editorInsertChar(int c) {
   if (E.cursorY == E.numlines)
@@ -274,6 +285,16 @@ void editorInsertChar(int c) {
   editorLineInsertChar(&E.lines[E.cursorY], E.cursorX, c);
   E.cursorX++;
   E.dirty++;
+}
+
+void editorDeleteChar(void) {
+  if (E.cursorY == E.numlines)
+    return;
+
+  if (E.cursorX > 0) {
+    editorLineDeleteChar(&E.lines[E.cursorY], --E.cursorX);
+    E.dirty++;
+  }
 }
 
 /*** Terminal ***/
@@ -657,7 +678,8 @@ void editorProcessKeypress(void) {
     case BACKSPACE:
     case CTRL_KEY('h'):
     case DEL_KEY:
-      // TODO
+      if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
+      editorDeleteChar();
       break;
 
     case PAGE_UP:
