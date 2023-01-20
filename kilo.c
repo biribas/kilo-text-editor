@@ -621,6 +621,8 @@ void editorMoveCursor(int key) {
 }
 
 void editorProcessKeypress(void) {
+  static int quit_times = 2;
+
   int c = editorReadKey();
 
   switch (c) {
@@ -629,6 +631,11 @@ void editorProcessKeypress(void) {
       break;
     
     case CTRL_KEY('q'):
+      quit_times--;
+      if (E.dirty && quit_times > 0) {
+        editorSetStatusMessage("File has unsaved changes. Press Ctrl-Q again to quit");
+        return;
+      }
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
@@ -686,6 +693,8 @@ void editorProcessKeypress(void) {
       editorInsertChar(c);
       break;
   }
+
+  quit_times = 2;
 }
 
 /*** Buffer ***/
