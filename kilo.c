@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <termios.h>
@@ -64,7 +65,9 @@ int editorReadKey(void);
 int getCursorPosition(int *rows, int *cols);
 int getWindowSize(int *rows, int *cols);
 // File i/o
+char *editorLinesToString(int *buflen);
 void editorOpen(char *filename);
+void editorSave(void);
 // Line operations
 int editorConvertCursorX(editorLine *line, int cursorX);
 void editorUpdateLine(editorLine *);
@@ -99,7 +102,7 @@ int main(int argc, char **argv) {
     editorOpen(argv[1]);
   }
 
-  editorSetStatusMessage("HELP: Ctrl-Q = quit");
+  editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
 
   while (1) {
     editorRefreshScreen();
@@ -130,6 +133,24 @@ void initEditor(void) {
 
 /*** File i/o ***/
 
+char *editorLinesToString(int *buflen) {
+  int total_len = 0;
+  for (int i = 0; i < E.numlines; i++)
+    total_len += E.lines[i].length + 1;
+  *buflen = total_len; 
+
+  char *buf = malloc(total_len);
+  char *p = buf;
+  for (int i = 0; i < E.numlines; i++) {
+    memcpy(p, E.lines[i].content, E.lines[i].length);
+    p += E.lines[i].length;
+    *p = '\n';
+    p++;
+  }
+
+  return buf;
+}
+
 void editorOpen(char *filename) {
   free(E.filename);
   E.filename = strdup(filename);
@@ -150,6 +171,31 @@ void editorOpen(char *filename) {
 
   free(line);
   fclose(file);
+}
+
+void editorSave(void) {
+  if (E.filename == NULL)
+    return;
+
+  int len;
+  char *buf = editorLinesToString(&len);
+
+  int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
+
+  if (fd != -1) {
+    if (ftruncate(fd, len) != -1) {
+      if (write(fd, buf, len) == len) {
+        close(fd);
+        free(buf);
+        editorSetStatusMessage("%d bytes written to disk", len);
+        return;
+      }
+    }
+    close(fd);
+  }
+
+  editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
+  free(buf);
 }
 
 /*** Line operations ***/
@@ -581,6 +627,10 @@ void editorProcessKeypress(void) {
       write(STDOUT_FILENO, "\x1b[2J", 4);
       write(STDOUT_FILENO, "\x1b[H", 3);
       exit(0);
+      break;
+
+    case CTRL_KEY('s'):
+      editorSave();
       break;
 
     case HOME_KEY:
