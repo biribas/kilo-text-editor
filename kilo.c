@@ -50,6 +50,7 @@ struct editorConfig {
   int screenRows, screenCols;
   int rowOffset, colOffset;
   int numlines;
+  int dirty;
   editorLine *lines;
   char *filename;
   char statusmsg[80];
@@ -121,6 +122,7 @@ void initEditor(void) {
   E.colOffset = 0;
   E.numlines = 0;
   E.lines = NULL;
+  E.dirty = 0;
   E.filename = NULL;
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
@@ -188,6 +190,7 @@ void editorSave(void) {
         close(fd);
         free(buf);
         editorSetStatusMessage("%d bytes written to disk", len);
+        E.dirty = 0;
         return;
       }
     }
@@ -270,6 +273,7 @@ void editorInsertChar(int c) {
 
   editorLineInsertChar(&E.lines[E.cursorY], E.cursorX, c);
   E.cursorX++;
+  E.dirty++;
 }
 
 /*** Terminal ***/
@@ -489,8 +493,9 @@ void editorDrawStatusBar(buffer *buff) {
 
   char info[80], position[80];
 
-  char *filename = E.filename ? E.filename : "[No name]";
-  int infoLen = snprintf(info, sizeof(info), " %.20s - %d lines ", filename, E.numlines);
+  const char *filename = E.filename ? E.filename : "[No name]";
+  const char *modified = E.dirty ? "(modified)" : "";
+  int infoLen = snprintf(info, sizeof(info), " %.20s - %d lines %s", filename, E.numlines, modified);
 
   char percent[80];
   if (E.numlines == 0 || E.cursorY == 0) {
