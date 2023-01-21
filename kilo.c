@@ -73,7 +73,10 @@ void editorSave(void);
 int editorConvertCursorX(editorLine *line, int cursorX);
 void editorUpdateLine(editorLine *);
 void editorAppendLine(char *line, size_t length);
+void editorFreeLine(editorLine *line);
+void editorDeleteLine(int at);
 void editorLineInsertChar(editorLine *line, int at, int c);
+void editorLineAppendString(editorLine *line, char *string, size_t len);
 void editorLineDeleteChar(editorLine *line, int at);
 // Editor operations
 void editorInsertChar(int c);
@@ -257,6 +260,20 @@ void editorAppendLine(char *line, size_t length) {
   E.numlines++;
 }
 
+void editorFreeLine(editorLine *line) {
+  free(line->content);
+  free(line->renderContent);
+}
+
+void editorDeleteLine(int at) {
+  if (at < 0 || at >= E.numlines)
+    return;
+
+  editorFreeLine(&E.lines[at]);
+  memmove(&E.lines[at], &E.lines[at + 1], sizeof(editorLine) * (E.numlines - at - 1));
+  E.numlines--;
+}
+
 void editorLineInsertChar(editorLine *line, int at, int c) {
   if (at < 0 || at > line->length) 
     at = line->length;
@@ -265,6 +282,14 @@ void editorLineInsertChar(editorLine *line, int at, int c) {
   memmove(&line->content[at + 1], &line->content[at], line->length - at + 1);
   line->length++;
   line->content[at] = c;
+  editorUpdateLine(line);
+}
+
+void editorLineAppendString(editorLine *line, char *s, size_t len) {
+  line->content = realloc(line->content, line->length + len + 1);
+  memcpy(&line->content[line->length], s, len);
+  line->length += len;
+  line->content[line->length] = '\0';
   editorUpdateLine(line);
 }
 
@@ -288,13 +313,22 @@ void editorInsertChar(int c) {
 }
 
 void editorDeleteChar(void) {
-  if (E.cursorY == E.numlines)
-    return;
+  if (E.cursorY == E.numlines) return;
+  if (E.cursorX == 0 && E.cursorY == 0) return;
 
+
+  editorLine *line = &E.lines[E.cursorY];
   if (E.cursorX > 0) {
-    editorLineDeleteChar(&E.lines[E.cursorY], --E.cursorX);
-    E.dirty++;
+    editorLineDeleteChar(line, --E.cursorX);
   }
+  else {
+    E.cursorX = E.lines[E.cursorY - 1].length;
+    editorLineAppendString(&E.lines[E.cursorY - 1], line->content, line->length);
+    editorDeleteLine(E.cursorY);
+    E.cursorY--;
+  }
+
+  E.dirty++;
 }
 
 /*** Terminal ***/
