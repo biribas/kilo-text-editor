@@ -72,7 +72,7 @@ void editorSave(void);
 // Line operations
 int editorConvertCursorX(editorLine *line, int cursorX);
 void editorUpdateLine(editorLine *);
-void editorAppendLine(char *line, size_t length);
+void editorInsertLine(int at, char *line, size_t length);
 void editorFreeLine(editorLine *line);
 void editorDeleteLine(int at);
 void editorLineInsertChar(editorLine *line, int at, int c);
@@ -81,6 +81,7 @@ void editorLineDeleteChar(editorLine *line, int at);
 // Editor operations
 void editorInsertChar(int c);
 void editorDeleteChar(void);
+void editorInsertNewLine(void);
 // Output
 void editorScrollX(void);
 void editorScrollY(void);
@@ -173,7 +174,7 @@ void editorOpen(char *filename) {
   while ((length = getline(&line, &capacity, file)) != -1) {
     while (length > 0 && (line[length - 1] == '\n' || line[length - 1] == '\r'))
       length--;
-    editorAppendLine(line, length);
+    editorInsertLine(E.numlines, line, length);
   }
 
   free(line);
@@ -226,6 +227,7 @@ void editorUpdateLine(editorLine *line) {
       tabs++;
   }
   
+  free(line->renderContent);
   line->renderContent = malloc(line->length + (TAB_SIZE - 1) * tabs + 1);
 
   int index = 0;
@@ -244,9 +246,12 @@ void editorUpdateLine(editorLine *line) {
   line->renderLength = index;
 }
 
-void editorAppendLine(char *line, size_t length) {
+void editorInsertLine(int at, char *line, size_t length) {
+  if (at < 0 || at > E.numlines)
+    return;
+
   E.lines = realloc(E.lines, sizeof(editorLine) * (E.numlines + 1));
-  int at = E.numlines;
+  memmove(&E.lines[at + 1], &E.lines[at], sizeof(editorLine) * (E.numlines - at));
 
   E.lines[at].length = length;
   E.lines[at].content = malloc(length + 1);
@@ -305,7 +310,7 @@ void editorLineDeleteChar(editorLine *line, int at) {
 /** Editor operations **/
 void editorInsertChar(int c) {
   if (E.cursorY == E.numlines)
-    editorAppendLine("", 0);
+    editorInsertLine(E.numlines, "", 0);
 
   editorLineInsertChar(&E.lines[E.cursorY], E.cursorX, c);
   E.cursorX++;
@@ -329,6 +334,22 @@ void editorDeleteChar(void) {
   }
 
   E.dirty++;
+}
+
+void editorInsertNewLine(void) {
+  if (E.cursorX == 0) {
+    editorInsertLine(E.cursorY, "", 0);
+  }
+  else {
+    editorLine *line = &E.lines[E.cursorY];
+    editorInsertLine(E.cursorY + 1, &line->content[E.cursorX], line->length - E.cursorX);
+    line->length = E.cursorX; 
+    line->content[line->length] = '\0';
+    editorUpdateLine(line);
+  }
+  E.cursorY++;
+  E.cursorX = 0;
+  E.highestLastX = E.cursorX;
 }
 
 /*** Terminal ***/
@@ -682,7 +703,7 @@ void editorProcessKeypress(void) {
 
   switch (c) {
     case '\r':
-      // TODO
+      editorInsertNewLine();
       break;
     
     case CTRL_KEY('q'):
