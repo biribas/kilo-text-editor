@@ -1,3 +1,4 @@
+#include <stddef.h>
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 #define _GNU_SOURCE
@@ -91,6 +92,7 @@ void editorDrawMessageBar(buffer *);
 void editorRefreshScreen(void);
 void editorSetStatusMessage(const char *format, ...);
 // Input
+char *editorPrompt(char *);
 void editorMoveCursor(int);
 void editorProcessKeypress(void);
 // Init
@@ -182,8 +184,13 @@ void editorOpen(char *filename) {
 }
 
 void editorSave(void) {
-  if (E.filename == NULL)
-    return;
+  if (E.filename == NULL) {
+    E.filename = editorPrompt("Save as: %s");
+    if (E.filename == NULL) {
+      editorSetStatusMessage("Save aborted");
+      return;
+    }
+  }
 
   int len;
   char *buf = editorLinesToString(&len);
@@ -345,7 +352,7 @@ void editorInsertNewLine(void) {
   else {
     editorLine *line = &E.lines[E.cursorY];
     editorInsertLine(E.cursorY + 1, &line->content[E.cursorX], line->length - E.cursorX);
-
+ 
     line = &E.lines[E.cursorY];
     line->length = E.cursorX; 
     line->content = realloc(line->content, line->length + 1);
@@ -655,6 +662,46 @@ void editorSetStatusMessage(const char *format, ...) {
 }
 
 /*** Input ***/
+
+char *editorPrompt(char *prompt) {
+  size_t bufsize = 128;
+  char *buf = malloc(bufsize);
+
+  size_t buflen = 0;
+  buf[0] = '\0';
+
+  while (1) {
+    editorSetStatusMessage(prompt, buf);
+    editorRefreshScreen();
+
+    int c = editorReadKey();
+
+    if (c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE) {
+      if (buflen == 0) continue;
+      buf[--buflen] = '\0';
+    }
+    else if (c == '\x1b') {
+      editorSetStatusMessage("");
+      free(buf);
+      return NULL;
+    }
+    else if (c == '\r') {
+      if (buflen == 0) continue;
+      editorSetStatusMessage("");
+      return buf;
+    }
+    else if (!iscntrl(c) && c < 128) {
+      if (buflen == bufsize - 1) {
+        bufsize *= 2;
+        buf = realloc(buf, bufsize);
+      }
+      buf[buflen++] = c;
+      buf[buflen] = '\0';
+    }
+  }
+
+  return NULL;
+}
 
 void editorMoveCursor(int key) {
   editorLine *currentLine = (E.cursorY >= E.numlines) ? NULL : &E.lines[E.cursorY];
