@@ -345,8 +345,12 @@ void editorInsertNewLine(void) {
   else {
     editorLine *line = &E.lines[E.cursorY];
     editorInsertLine(E.cursorY + 1, &line->content[E.cursorX], line->length - E.cursorX);
+
+    line = &E.lines[E.cursorY];
     line->length = E.cursorX; 
+    line->content = realloc(line->content, line->length + 1);
     line->content[line->length] = '\0';
+
     editorUpdateLine(line);
     E.cursorX = 0;
   }
