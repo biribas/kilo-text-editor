@@ -585,7 +585,7 @@ void editorDrawStatusBar(buffer *buff) {
 
   const char *filename = E.filename ? E.filename : "[No name]";
   const char *modified = E.dirty ? "(modified)" : "";
-  int infoLen = snprintf(info, sizeof(info), " %.20s - %d lines %s", filename, E.numlines, modified);
+  int infoLen = snprintf(info, sizeof(info), " %.20s %s", filename, modified);
 
   char percent[80];
   if (E.numlines == 0 || E.cursorY == 0) {
