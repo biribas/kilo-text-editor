@@ -18,7 +18,7 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define BUFFER_INIT {NULL, 0}
 #define KILO_VERSION "0.0.1"
-#define TAB_SIZE 8
+#define TAB_SIZE 2
 #define QUIT_TIMES 2
 
 enum editorKeys {
