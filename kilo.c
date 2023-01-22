@@ -560,7 +560,7 @@ void editorDrawLines(buffer *buff) {
 
         appendBuffer(buff, welcome, length);
       }
-      else { 
+      else if (filerow != 0) { 
         appendBuffer(buff, "~", 1);
       }
     }
@@ -704,19 +704,21 @@ char *editorPrompt(char *prompt) {
 }
 
 void editorMoveCursor(int key) {
-  editorLine *currentLine = (E.cursorY >= E.numlines) ? NULL : &E.lines[E.cursorY];
+  editorLine *currentLine = &E.lines[E.cursorY];
 
   switch (key) {
     case ARROW_UP:
-      if (E.cursorY != 0)
+      if (E.cursorY != 0) {
         E.cursorY--;
-      E.cursorX = E.highestLastX;
+        E.cursorX = E.highestLastX;
+      }
       break;
 
     case ARROW_DOWN:
-      if (E.cursorY < E.numlines)
+      if (E.cursorY + 1 < E.numlines) {
         E.cursorY++;
-      E.cursorX = E.highestLastX;
+        E.cursorX = E.highestLastX;
+      }
       break;
 
     case ARROW_LEFT:
@@ -731,12 +733,10 @@ void editorMoveCursor(int key) {
       break;
 
     case ARROW_RIGHT:
-      if (!currentLine) break;
-
       if (E.cursorX < currentLine->length) {
         E.cursorX++;
       }
-      else {
+      else if (E.cursorY + 1 < E.numlines) {
         E.cursorY++;
         E.cursorX = 0;
       }
@@ -744,11 +744,10 @@ void editorMoveCursor(int key) {
       break;
   }
 
-  currentLine = (E.cursorY >= E.numlines) ? NULL : &E.lines[E.cursorY];
-  int length = currentLine ? currentLine->length : 0;
+  currentLine = &E.lines[E.cursorY];
   
-  if (E.cursorX > length)
-    E.cursorX = length;
+  if (E.cursorX > currentLine->length)
+    E.cursorX = currentLine->length;
 }
 
 void editorProcessKeypress(void) {
@@ -799,8 +798,8 @@ void editorProcessKeypress(void) {
       }
       else {
         E.cursorY = E.rowOffset + E.screenRows - 1;  
-        if (E.cursorY > E.numlines)
-          E.cursorY = E.numlines;
+        if (E.cursorY + 1 > E.numlines)
+          E.cursorY = E.numlines - 1;
       } 
 
       int times = E.screenRows;
