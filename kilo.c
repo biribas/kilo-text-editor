@@ -19,6 +19,7 @@
 #define BUFFER_INIT {NULL, 0}
 #define KILO_VERSION "0.0.1"
 #define TAB_SIZE 8
+#define QUIT_TIMES 2
 
 enum editorKeys {
   BACKSPACE = 127,
@@ -824,7 +825,10 @@ void editorProcessKeypress(void) {
       break;
   }
 
-  quit_times = 2;
+  if (quit_times < QUIT_TIMES) {
+    editorSetStatusMessage("");
+    quit_times = QUIT_TIMES;
+  }
 }
 
 /*** Buffer ***/
