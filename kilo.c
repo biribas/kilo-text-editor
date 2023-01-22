@@ -79,6 +79,7 @@ void editorDeleteLine(int at);
 void editorLineInsertChar(editorLine *line, int at, int c);
 void editorLineAppendString(editorLine *line, char *string, size_t len);
 void editorLineDeleteChar(editorLine *line, int at);
+void freeMemory(void);
 // Editor operations
 void editorInsertChar(int c);
 void editorDeleteChar(void);
@@ -122,6 +123,8 @@ int main(int argc, char **argv) {
 }
 
 void initEditor(void) {
+  atexit(freeMemory);
+
   E.cursorX = 0;
   E.cursorY = 0;
   E.highestLastX = 0;
@@ -312,6 +315,14 @@ void editorLineDeleteChar(editorLine *line, int at) {
   memmove(&line->content[at], &line->content[at + 1], line->length - at);
   line->length--; 
   editorUpdateLine(line);
+}
+
+void freeMemory(void) {
+  free(E.filename);
+  for (int i = 0; i < E.numlines; i++) {
+    editorFreeLine(&E.lines[i]);
+  }
+  free(E.lines);
 }
 
 /** Editor operations **/
