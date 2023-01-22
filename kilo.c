@@ -313,14 +313,15 @@ void editorInsertChar(int c) {
     editorInsertLine(E.numlines, "", 0);
 
   editorLineInsertChar(&E.lines[E.cursorY], E.cursorX, c);
+
   E.cursorX++;
+  E.highestLastX = E.cursorX;
   E.dirty++;
 }
 
 void editorDeleteChar(void) {
   if (E.cursorY == E.numlines) return;
   if (E.cursorX == 0 && E.cursorY == 0) return;
-
 
   editorLine *line = &E.lines[E.cursorY];
   if (E.cursorX > 0) {
@@ -333,6 +334,7 @@ void editorDeleteChar(void) {
     E.cursorY--;
   }
 
+  E.highestLastX = E.cursorX;
   E.dirty++;
 }
 
@@ -346,10 +348,12 @@ void editorInsertNewLine(void) {
     line->length = E.cursorX; 
     line->content[line->length] = '\0';
     editorUpdateLine(line);
+    E.cursorX = 0;
   }
-  E.cursorY++;
-  E.cursorX = 0;
+
   E.highestLastX = E.cursorX;
+  E.cursorY++;
+  E.dirty++;
 }
 
 /*** Terminal ***/
