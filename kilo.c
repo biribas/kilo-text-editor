@@ -71,7 +71,7 @@ char *editorLinesToString(int *buflen);
 void editorOpen(char *filename);
 void editorSave(void);
 // Find
-void editorFindCallback(char *query, int key);
+int editorFindCallback(char *query, int key);
 void editorFind(void);
 // Line operations
 int editorLineCxToRx(editorLine *line, int cursorX);
@@ -97,7 +97,7 @@ void editorDrawMessageBar(buffer *);
 void editorRefreshScreen(void);
 void editorSetStatusMessage(const char *format, ...);
 // Input
-char *editorPrompt(char *, void (*callback)(char *, int));
+char *editorPrompt(char *, int (*callback)(char *, int));
 void editorMoveCursor(int);
 void editorProcessKeypress(void);
 // Init
@@ -223,9 +223,9 @@ void editorSave(void) {
 
 /*** Find ***/
 
-void editorFindCallback(char *query, int key) {
+int editorFindCallback(char *query, int key) {
   if (key == '\r' || key == '\x1b') {
-    return;
+    return -1;
   }
 
   for (int i = 0; i < E.numlines; i++) {
@@ -238,17 +238,15 @@ void editorFindCallback(char *query, int key) {
 
       int offset = E.cursorY - E.screenRows / 2;
       E.rowOffset = offset >= 0 ? offset : E.numlines;
-      break;
+      return 1;
     }
   }
+  return 0;
 }
 
 void editorFind(void) {
   char *query = editorPrompt("Search: %s", editorFindCallback);
-
-  if (query) {
-    free(query);
-  }
+  free(query);
 }
 
 /*** Line operations ***/
@@ -725,7 +723,13 @@ void editorSetStatusMessage(const char *format, ...) {
 
 /*** Input ***/
 
-char *editorPrompt(char *prompt, void (*callback)(char *, int)) {
+char *editorPrompt(char *prompt, int (*callback)(char *, int)) {
+  // Used only in search
+  int saved_cursorX = E.cursorX;
+  int saved_cursorY = E.cursorY;
+  int saved_rowOff = E.rowOffset;
+  int saved_colOff = E.colOffset;
+
   size_t bufsize = 128;
   char *buf = malloc(bufsize);
 
@@ -743,7 +747,14 @@ char *editorPrompt(char *prompt, void (*callback)(char *, int)) {
       buf[--buflen] = '\0';
     }
     else if (c == '\x1b') {
-      if (callback) callback(buf, c);
+      if (callback) {
+        callback(buf, c);
+        E.cursorX = saved_cursorX;
+        E.cursorY = saved_cursorY;
+        E.rowOffset = saved_rowOff;
+        E.colOffset = saved_colOff;
+      }
+
       editorSetStatusMessage("");
       free(buf);
       return NULL;
@@ -763,10 +774,13 @@ char *editorPrompt(char *prompt, void (*callback)(char *, int)) {
       buf[buflen] = '\0';
     }
 
-    if (callback) callback(buf, c);
+    if (callback && !callback(buf, c)) {
+      E.cursorX = saved_cursorX;
+      E.cursorY = saved_cursorY;
+      E.rowOffset = saved_rowOff;
+      E.colOffset = saved_colOff;
+    }
   }
-
-  return NULL;
 }
 
 void editorMoveCursor(int key) {
