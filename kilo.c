@@ -70,8 +70,11 @@ int getWindowSize(int *rows, int *cols);
 char *editorLinesToString(int *buflen);
 void editorOpen(char *filename);
 void editorSave(void);
+// Find
+void editorFind(void);
 // Line operations
-int editorConvertCursorX(editorLine *line, int cursorX);
+int editorLineCxToRx(editorLine *line, int cursorX);
+int editorLineRxToCx(editorLine *line, int rCursorX);
 void editorUpdateLine(editorLine *);
 void editorInsertLine(int at, char *line, size_t length);
 void editorFreeLine(editorLine *line);
@@ -112,7 +115,7 @@ int main(int argc, char **argv) {
     editorOpen(argv[1]);
   }
 
-  editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
+  editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
   while (1) {
     editorRefreshScreen();
@@ -217,9 +220,32 @@ void editorSave(void) {
   free(buf);
 }
 
+/*** Find ***/
+
+void editorFind(void) {
+  char *query = editorPrompt("Search: %s");
+  if (query == NULL) return;
+
+  for (int i = 0; i < E.numlines; i++) {
+    editorLine *line = &E.lines[i];
+    char *match = strstr(line->renderContent, query);
+
+    if (match) {
+      E.cursorY = i;
+      E.cursorX = editorLineRxToCx(line, match - line->renderContent);
+
+      int offset = E.cursorY - E.screenRows / 2;
+      E.rowOffset = offset >= 0 ? offset : E.numlines;
+      break;
+    }
+  }
+
+  free(query);
+}
+
 /*** Line operations ***/
 
-int editorConvertCursorX(editorLine *line, int cursorX) {
+int editorLineCxToRx(editorLine *line, int cursorX) {
   int rx = 0;
   for (int i = 0; i < cursorX; i++) {
     if (line->content[i] == '\t')
@@ -228,6 +254,23 @@ int editorConvertCursorX(editorLine *line, int cursorX) {
       rx++;
   }
   return rx;
+}
+
+int editorLineRxToCx(editorLine *line, int rCursorX) {
+  int rx = 0;
+  int cx;
+
+  for (cx = 0; cx < line->length; cx++) {
+    if (line->content[cx] == '\t')
+      rx += TAB_SIZE - (rx % TAB_SIZE);
+    else 
+      rx++;
+
+    if (rx > rCursorX)
+      return cx;
+  }
+
+  return cx;
 }
 
 void editorUpdateLine(editorLine *line) {
@@ -640,7 +683,7 @@ void editorDrawMessageBar(buffer *buff) {
 }
 
 void editorRefreshScreen(void) {
-  E.rCursorX = E.cursorY < E.numlines ? editorConvertCursorX(&E.lines[E.cursorY], E.cursorX) : 0;
+  E.rCursorX = E.cursorY < E.numlines ? editorLineCxToRx(&E.lines[E.cursorY], E.cursorX) : 0;
 
   editorScrollX();
   editorScrollY();
@@ -784,6 +827,10 @@ void editorProcessKeypress(void) {
 
     case CTRL_KEY('s'):
       editorSave();
+      break;
+
+    case CTRL_KEY('f'):
+      editorFind();
       break;
 
     case HOME_KEY:
