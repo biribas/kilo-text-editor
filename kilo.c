@@ -15,6 +15,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#define MOD(a, b) ((a % b + b) % b)
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define BUFFER_INIT {NULL, 0}
 #define KILO_VERSION "0.0.1"
@@ -46,6 +47,8 @@ typedef struct {
 
 struct editorConfig {
   int cursorX, cursorY;
+  int savedLastY;
+  int savedLastX;
   int highestLastX;
   int rCursorX;
   int screenRows, screenCols;
@@ -71,6 +74,7 @@ char *editorLinesToString(int *buflen);
 void editorOpen(char *filename);
 void editorSave(void);
 // Find
+char *findLastOccurrence(char *lasMatch, char *query, char *lineContent);
 int editorFindCallback(char *query, int key);
 void editorFind(void);
 // Line operations
@@ -223,24 +227,73 @@ void editorSave(void) {
 
 /*** Find ***/
 
+char *findLastOccurrence(char *lasMatch, char *query, char *lineContent) {
+  char *prev = NULL;
+  char *cur = lineContent;
+
+  while (1) {
+    cur = strstr(cur, query);
+    if (cur == lasMatch) break;
+    prev = cur;
+    cur++;
+  }
+  return prev;
+}
+
 int editorFindCallback(char *query, int key) {
-  if (key == '\r' || key == '\x1b') {
+  static int current;
+  static int direction;
+  static char *match = NULL;
+
+  if (*query == '\0') {
+    return 0;
+  }
+  else if (key == '\r' || key == '\x1b') {
     return -1;
   }
 
-  for (int i = 0; i < E.numlines; i++) {
-    editorLine *line = &E.lines[i];
-    char *match = strstr(line->renderContent, query);
+  if (key == ARROW_RIGHT || key == ARROW_DOWN) {
+    direction = 1; 
+  }
+  else if (key == ARROW_LEFT || key == ARROW_UP) {
+    direction = -1; 
+  }
+  else {
+    current = E.savedLastY;
+    direction = 1;
+    match = E.lines[current].renderContent + E.savedLastX;
+  }
+
+  do {
+    editorLine *line = &E.lines[current];
 
     if (match) {
-      E.cursorY = i;
+      match = direction == -1
+        ? findLastOccurrence(match, query, line->renderContent)
+        : strstr(match + 1, query);
+    }
+
+    if (!match) {
+      current = MOD(current + direction, E.numlines);
+      line = &E.lines[current];
+
+      match = direction == -1
+        ? findLastOccurrence(match, query, line->renderContent)
+        : strstr(line->renderContent, query);
+    }
+
+    if (match) {
+      E.cursorY = current;
       E.cursorX = editorLineRxToCx(line, match - line->renderContent);
 
-      int offset = E.cursorY - E.screenRows / 2;
-      E.rowOffset = offset >= 0 ? offset : E.numlines;
+      E.rowOffset = E.screenRows <= E.cursorY
+        ? E.cursorY - E.screenRows / 2
+        : E.numlines;
+
       return 1;
     }
-  }
+  } while (current != E.savedLastY);
+
   return 0;
 }
 
@@ -725,8 +778,8 @@ void editorSetStatusMessage(const char *format, ...) {
 
 char *editorPrompt(char *prompt, int (*callback)(char *, int)) {
   // Used only in search
-  int saved_cursorX = E.cursorX;
-  int saved_cursorY = E.cursorY;
+  E.savedLastX = E.cursorX;
+  E.savedLastY = E.cursorY;
   int saved_rowOff = E.rowOffset;
   int saved_colOff = E.colOffset;
 
@@ -749,8 +802,8 @@ char *editorPrompt(char *prompt, int (*callback)(char *, int)) {
     else if (c == '\x1b') {
       if (callback) {
         callback(buf, c);
-        E.cursorX = saved_cursorX;
-        E.cursorY = saved_cursorY;
+        E.cursorX = E.savedLastX;
+        E.cursorY = E.savedLastY;
         E.rowOffset = saved_rowOff;
         E.colOffset = saved_colOff;
       }
@@ -775,8 +828,8 @@ char *editorPrompt(char *prompt, int (*callback)(char *, int)) {
     }
 
     if (callback && !callback(buf, c)) {
-      E.cursorX = saved_cursorX;
-      E.cursorY = saved_cursorY;
+      E.cursorX = E.savedLastX;
+      E.cursorY = E.savedLastY;
       E.rowOffset = saved_rowOff;
       E.colOffset = saved_colOff;
     }
