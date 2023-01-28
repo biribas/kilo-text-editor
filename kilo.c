@@ -507,8 +507,8 @@ void disableRawMode(void) {
 }
 
 void die(const char *str) {
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  write(STDOUT_FILENO, "\x1b[2J", 4); // Erase entire screen
+  write(STDOUT_FILENO, "\x1b[H", 3);  // Moves cursor to home position (0, 0)
 
   perror(str);
   exit(1);
@@ -567,7 +567,8 @@ int editorReadKey(void) {
 }
 
 int getCursorPosition(int *rows, int *cols) {
-  if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4)
+  // Request cursor position (reports as "\x1b[#;#R")
+  if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) 
     return -1;
 
   char buffer[32];
@@ -593,6 +594,7 @@ int getWindowSize(int *rows, int *cols) {
   struct winsize ws;
 
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+    // Moves cursor 999 spaces right and down, respectively
     if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) == -1)
       return -1;
 
@@ -687,7 +689,7 @@ void editorDrawLines(buffer *buff) {
       appendBuffer(buff, &E.lines[filerow].renderContent[E.colOffset], length);
     }
 
-    appendBuffer(buff, "\x1b[K", 3);
+    appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
     appendBuffer(buff, "\r\n", 2);
   }
 }
@@ -727,12 +729,12 @@ void editorDrawStatusBar(buffer *buff) {
     appendBuffer(buff, " ", 1);
   }
 
-  appendBuffer(buff, "\x1b[m", 3); // Normal formating
+  appendBuffer(buff, "\x1b[m", 3); // Reset normal color
   appendBuffer(buff, "\r\n", 2);
 }
 
 void editorDrawMessageBar(buffer *buff) {
-  appendBuffer(buff, "\x1b[K", 3);
+  appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
   int len = strlen(E.statusmsg);
   if (len > E.screenCols)
     len = E.screenCols;
@@ -749,8 +751,8 @@ void editorRefreshScreen(void) {
 
   buffer buff = BUFFER_INIT;
 
-  appendBuffer(&buff, "\x1b[?25l", 6);
-  appendBuffer(&buff, "\x1b[H", 3);
+  appendBuffer(&buff, "\x1b[?25l", 6); // Make cursor invisible
+  appendBuffer(&buff, "\x1b[H", 3); // Moves cursor to home position (0, 0)
 
   editorDrawLines(&buff);
   editorDrawStatusBar(&buff);
@@ -760,7 +762,7 @@ void editorRefreshScreen(void) {
   snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.rCursorX - E.colOffset) + 1);
   appendBuffer(&buff, temp, strlen(temp));
 
-  appendBuffer(&buff, "\x1b[?25h", 6);
+  appendBuffer(&buff, "\x1b[?25h", 6); // Make cursor visible
 
   write(STDOUT_FILENO, buff.content, buff.length);
   freeBuffer(&buff);
@@ -899,8 +901,8 @@ void editorProcessKeypress(void) {
         editorSetStatusMessage("File has unsaved changes. Press Ctrl-Q again to quit");
         return;
       }
-      write(STDOUT_FILENO, "\x1b[2J", 4);
-      write(STDOUT_FILENO, "\x1b[H", 3);
+      write(STDOUT_FILENO, "\x1b[2J", 4); // Erase entire screen
+      write(STDOUT_FILENO, "\x1b[H", 3);  // Moves cursor to home position (0, 0)
       exit(0);
       break;
 
