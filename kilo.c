@@ -15,6 +15,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#define MIN(a, b) (a < b ? a : b)
+#define MAX(a, b) (a > b ? a : b)
 #define MOD(a, b) ((a % b + b) % b)
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define BUFFER_INIT {NULL, 0}
@@ -35,9 +37,16 @@ enum editorKeys {
   PAGE_DOWN
 };
 
+enum editorHighlight {
+  HL_NORMAL = 0,
+  HL_MATCH, 
+  HL_CURRENT_MATCH
+};
+
 typedef struct {
   char *content, *renderContent;
   int length, renderLength;
+  unsigned char *highlight;
 } editorLine;
 
 typedef struct {
@@ -77,6 +86,8 @@ void editorSave(void);
 char *findLastOccurrence(char *lasMatch, char *query, char *lineContent);
 int editorFindCallback(char *query, int key);
 void editorFind(void);
+// Syntax highlighting
+void editorUpdateHighlight(editorLine *line);
 // Line operations
 int editorLineCxToRx(editorLine *line, int cursorX);
 int editorLineRxToCx(editorLine *line, int rCursorX);
@@ -240,10 +251,21 @@ char *findLastOccurrence(char *lasMatch, char *query, char *lineContent) {
   return prev;
 }
 
+void clearSearchHighlight(void) {  
+  int cur = E.rowOffset;
+  int last = MIN(cur + E.screenRows, E.numlines);
+  while (cur < last) {
+    editorUpdateHighlight(&E.lines[cur]);
+    cur++; 
+  }
+}
+
 int editorFindCallback(char *query, int key) {
   static int current;
   static int direction;
   static char *match = NULL;
+
+  clearSearchHighlight();
 
   if (*query == '\0') {
     return 0;
@@ -264,7 +286,12 @@ int editorFindCallback(char *query, int key) {
     match = E.lines[current].renderContent + E.savedLastX;
   }
 
-  do {
+  int found = 0;
+  int lastMatchIndex;
+  char *lastMatch;
+
+  int limit = current;
+  while (1) {
     editorLine *line = &E.lines[current];
 
     if (match) {
@@ -274,7 +301,11 @@ int editorFindCallback(char *query, int key) {
     }
 
     if (!match) {
-      current = MOD(current + direction, E.numlines);
+      int nextLine = MOD(current + direction, E.numlines);
+      if (current + direction == limit) break;
+      if (nextLine == limit) break;
+
+      current = nextLine;
       line = &E.lines[current];
 
       match = direction == -1
@@ -283,16 +314,43 @@ int editorFindCallback(char *query, int key) {
     }
 
     if (match) {
-      E.cursorY = current;
-      E.cursorX = editorLineRxToCx(line, match - line->renderContent);
+      if (!found) {
+        E.cursorY = current;
+        E.cursorX = editorLineRxToCx(line, match - line->renderContent);
 
-      E.rowOffset = E.screenRows <= E.cursorY
-        ? E.cursorY - E.screenRows / 2
-        : E.numlines;
+        E.rowOffset = E.screenRows <= E.cursorY
+          ? E.cursorY - E.screenRows / 2
+          : E.numlines;
 
-      return 1;
+        editorScrollY();
+
+        found = 1;
+
+        lastMatchIndex = current;
+        lastMatch = match;
+        direction = 1;
+
+        current = E.rowOffset;
+        limit = MIN(E.rowOffset + E.screenRows, E.numlines);
+
+        match = E.lines[current].renderContent - 1;
+      }
+      // Highlight others matches in the screen
+      else {
+        memset(&line->highlight[match - line->renderContent], HL_MATCH, strlen(query));
+      }
     }
-  } while (current != E.savedLastY);
+  }
+
+  if (found) {
+    current = lastMatchIndex;
+    match = lastMatch;
+
+    editorLine *line = &E.lines[current];
+    memset(&line->highlight[match - line->renderContent], HL_CURRENT_MATCH, strlen(query));
+
+    return 1;
+  }
 
   return 0;
 }
@@ -300,6 +358,21 @@ int editorFindCallback(char *query, int key) {
 void editorFind(void) {
   char *query = editorPrompt("Search: %s", editorFindCallback);
   free(query);
+}
+
+/*** Syntax highlighting ***/
+
+void editorUpdateHighlight(editorLine *line) {
+  line->highlight = realloc(line->highlight, line->renderLength);
+  memset(line->highlight, HL_NORMAL, line->renderLength);
+}
+
+int editorSyntaxToColor(int highlight) {
+  switch (highlight) {
+    case HL_MATCH: return 41;
+    case HL_CURRENT_MATCH: return 7;
+    default: return 39; 
+  }
 }
 
 /*** Line operations ***/
@@ -356,6 +429,8 @@ void editorUpdateLine(editorLine *line) {
 
   line->renderContent[index] = '\0';
   line->renderLength = index;
+
+  editorUpdateHighlight(line);
 }
 
 void editorInsertLine(int at, char *line, size_t length) {
@@ -370,6 +445,7 @@ void editorInsertLine(int at, char *line, size_t length) {
   memcpy(E.lines[at].content, line, length);
   E.lines[at].content[length] = '\0';
 
+  E.lines[at].highlight = NULL;
   E.lines[at].renderContent = NULL;
   E.lines[at].renderLength = 0;
   editorUpdateLine(&E.lines[at]);
@@ -380,6 +456,7 @@ void editorInsertLine(int at, char *line, size_t length) {
 void editorFreeLine(editorLine *line) {
   free(line->content);
   free(line->renderContent);
+  free(line->highlight);
 }
 
 void editorDeleteLine(int at) {
@@ -681,12 +758,34 @@ void editorDrawLines(buffer *buff) {
     }
     else {
       int length = E.lines[filerow].renderLength - E.colOffset;
-      if (length < 0)
-        length = 0;
-      if (length > E.screenCols)
-        length = E.screenCols;
+      if (length < 0) length = 0;
+      if (length > E.screenCols) length = E.screenCols;
 
-      appendBuffer(buff, &E.lines[filerow].renderContent[E.colOffset], length);
+      char *content = &E.lines[filerow].renderContent[E.colOffset];
+      unsigned char *highlight = &E.lines[filerow].highlight[E.colOffset];
+      
+      int currentColor = -1;
+      for (int j = 0; j < length; j++) {
+        if (highlight[j] == HL_NORMAL) {
+          if (currentColor != -1) {
+            currentColor = -1;
+            appendBuffer(buff, "\x1b[m", 5);
+            appendBuffer(buff, "\x1b[39m", 5);
+            appendBuffer(buff, "\x1b[49m", 5);
+          }
+        }
+        else {
+          int color = editorSyntaxToColor(highlight[j]);
+          if (color != currentColor) {
+            currentColor = color;
+            char ansi[16];
+            int len = snprintf(ansi, sizeof(ansi), "\x1b[%dm", color);
+            appendBuffer(buff, ansi, len);
+          }
+        }
+        appendBuffer(buff, &content[j], 1);
+      }
+      appendBuffer(buff, "\x1b[39m", 5);
     }
 
     appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
@@ -939,7 +1038,7 @@ void editorProcessKeypress(void) {
         E.cursorY = E.rowOffset + E.screenRows - 1;  
         if (E.cursorY + 1 > E.numlines)
           E.cursorY = E.numlines - 1;
-      } 
+      }
 
       int times = E.screenRows;
       int direction = c == PAGE_UP ? ARROW_UP : ARROW_DOWN;
