@@ -302,8 +302,8 @@ int editorFindCallback(char *query, int key) {
 
     if (!match) {
       int nextLine = MOD(current + direction, E.numlines);
-      if (current + direction == limit) break;
       if (nextLine == limit) break;
+      if (current + direction == limit) break;
 
       current = nextLine;
       line = &E.lines[current];
@@ -335,7 +335,6 @@ int editorFindCallback(char *query, int key) {
 
         match = E.lines[current].renderContent - 1;
       }
-      // Highlight others matches in the screen
       else {
         memset(&line->highlight[match - line->renderContent], HL_MATCH, strlen(query));
       }
@@ -348,11 +347,9 @@ int editorFindCallback(char *query, int key) {
 
     editorLine *line = &E.lines[current];
     memset(&line->highlight[match - line->renderContent], HL_CURRENT_MATCH, strlen(query));
-
-    return 1;
   }
 
-  return 0;
+  return found;
 }
 
 void editorFind(void) {
