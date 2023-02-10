@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 #define MIN(a, b) (a < b ? a : b)
-#define CLAMP(lower, value, upper) (value < lower ? lower : value > upper ? upper : value)
+#define CLAMP(min, value, max) (value < min ? min : value > max ? max : value)
 #define MOD(a, b) ((a % b + b) % b)
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define BUFFER_INIT {NULL, 0}
@@ -688,10 +688,10 @@ void editorScrollX(void) {
 
   int gap = MIN(colOffsetGap, E.rCursorX);
 
-  int lower = E.rCursorX - E.screenCols + gap + 1;
-  int upper = E.rCursorX - gap;
+  int min = E.rCursorX - E.screenCols + gap + 1;
+  int max = E.rCursorX - gap;
 
-  E.colOffset = CLAMP(lower, E.colOffset, upper);
+  E.colOffset = CLAMP(min, E.colOffset, max);
 }
 
 void editorScrollY(void) {
@@ -709,10 +709,10 @@ void editorScrollY(void) {
     gap = rowOffsetGap;
   }
 
-  int lower = E.cursorY - E.screenRows + 1 + gap;
-  int upper = E.cursorY - gap;
+  int min = E.cursorY - E.screenRows + 1 + gap;
+  int max = E.cursorY - gap;
 
-  E.rowOffset = CLAMP(lower, E.rowOffset, upper);
+  E.rowOffset = CLAMP(min, E.rowOffset, max);
 }
 
 void editorDrawLines(buffer *buff) {
