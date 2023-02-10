@@ -16,7 +16,7 @@
 #include <unistd.h>
 
 #define MIN(a, b) (a < b ? a : b)
-#define MAX(a, b) (a > b ? a : b)
+#define CLAMP(lower, value, upper) (value < lower ? lower : value > upper ? upper : value)
 #define MOD(a, b) ((a % b + b) % b)
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define BUFFER_INIT {NULL, 0}
@@ -684,23 +684,14 @@ int getWindowSize(int *rows, int *cols) {
 /*** Output ***/
 
 void editorScrollX(void) {
-  int gap;
+  const int colOffsetGap = E.screenCols * 0.20;
 
-  const int colOffsetGap = E.screenCols * 0.25;
+  int gap = MIN(colOffsetGap, E.rCursorX);
 
-  if (E.rCursorX < colOffsetGap) {
-    gap = E.rCursorX;
-  }
-  else {
-    gap = colOffsetGap;
-  }
+  int lower = E.rCursorX - E.screenCols + gap + 1;
+  int upper = E.rCursorX - gap;
 
-  if (E.rCursorX < E.colOffset + gap) {
-    E.colOffset = E.rCursorX - gap;
-  }
-  else if (E.rCursorX > E.colOffset + E.screenCols - 1 - gap) {
-    E.colOffset = E.rCursorX - E.screenCols + 1 + gap;
-  }
+  E.colOffset = CLAMP(lower, E.colOffset, upper);
 }
 
 void editorScrollY(void) {
@@ -718,12 +709,10 @@ void editorScrollY(void) {
     gap = rowOffsetGap;
   }
 
-  if (E.cursorY < E.rowOffset + gap) {
-    E.rowOffset = E.cursorY - gap;
-  }
-  else if (E.cursorY > E.rowOffset + E.screenRows - 1 - gap) {
-    E.rowOffset = E.cursorY - E.screenRows + 1 + gap;
-  }
+  int lower = E.cursorY - E.screenRows + 1 + gap;
+  int upper = E.cursorY - gap;
+
+  E.rowOffset = CLAMP(lower, E.rowOffset, upper);
 }
 
 void editorDrawLines(buffer *buff) {
@@ -734,8 +723,7 @@ void editorDrawLines(buffer *buff) {
         char welcome[80];
         int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
 
-        if (length > E.screenCols)
-          length = E.screenCols;
+        length = MIN(length, E.screenCols);
 
         int padding = (E.screenCols - length) / 2;
 
@@ -755,8 +743,7 @@ void editorDrawLines(buffer *buff) {
     }
     else {
       int length = E.lines[filerow].renderLength - E.colOffset;
-      if (length < 0) length = 0;
-      if (length > E.screenCols) length = E.screenCols;
+      length = CLAMP(0, length, E.screenCols);
 
       char *content = &E.lines[filerow].renderContent[E.colOffset];
       unsigned char *highlight = &E.lines[filerow].highlight[E.colOffset];
@@ -812,8 +799,7 @@ void editorDrawStatusBar(buffer *buff) {
 
   int posLen = snprintf(position, sizeof(position), " %d:%d   %s ", E.cursorY + 1, E.rCursorX + 1, percent);
 
-  if (infoLen > E.screenCols)
-    infoLen = E.screenCols;
+  infoLen = MIN(infoLen, E.screenCols);
 
   appendBuffer(buff, info, infoLen);
 
@@ -832,8 +818,7 @@ void editorDrawStatusBar(buffer *buff) {
 void editorDrawMessageBar(buffer *buff) {
   appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
   int len = strlen(E.statusmsg);
-  if (len > E.screenCols)
-    len = E.screenCols;
+  len = MIN(len, E.screenCols);
 
   if (len && time(NULL) - E.statusmsg_time < 5)
     appendBuffer(buff, E.statusmsg, len);
@@ -1032,9 +1017,7 @@ void editorProcessKeypress(void) {
         E.cursorY = E.rowOffset;
       }
       else {
-        E.cursorY = E.rowOffset + E.screenRows - 1;  
-        if (E.cursorY + 1 > E.numlines)
-          E.cursorY = E.numlines - 1;
+        E.cursorY = MIN(E.rowOffset + E.screenRows, E.numlines) - 1;
       }
 
       int times = E.screenRows;
