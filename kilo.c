@@ -987,9 +987,7 @@ void editorMoveCursor(int key) {
   }
 
   currentLine = &E.lines[E.cursorY];
-  
-  if (E.cursorX > currentLine->length)
-    E.cursorX = currentLine->length;
+  E.cursorX = MIN(E.cursorX, currentLine->length);
 }
 
 void editorProcessKeypress(void) {
