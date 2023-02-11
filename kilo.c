@@ -65,7 +65,7 @@ struct editorConfig {
   int screenRows, screenCols;
   int rowOffset, colOffset;
   int numlines;
-  int dirty;
+  bool dirty;
   editorLine *lines;
   char *filename;
   char statusmsg[80];
@@ -78,15 +78,15 @@ void enableRawMode(void);
 void disableRawMode(void);
 void die(const char *str);
 int editorReadKey(void);
-int getCursorPosition(int *rows, int *cols);
-int getWindowSize(int *rows, int *cols);
+bool getCursorPosition(int *rows, int *cols);
+bool getWindowSize(int *rows, int *cols);
 // File i/o
 char *editorLinesToString(int *buflen);
 void editorOpen(char *filename);
 void editorSave(void);
 // Find
 char *findLastOccurrence(char *lasMatch, char *query, char *lineContent);
-int editorFindCallback(char *query, int key);
+bool editorFindCallback(char *query, int key);
 void editorFind(void);
 // Syntax highlighting
 bool isSeparator(int);
@@ -116,7 +116,7 @@ void editorDrawMessageBar(buffer *);
 void editorRefreshScreen(void);
 void editorSetStatusMessage(const char *format, ...);
 // Input
-char *editorPrompt(char *, int (*callback)(char *, int));
+char *editorPrompt(char *, bool (*callback)(char *, int));
 void editorMoveCursor(int);
 void editorProcessKeypress(void);
 // Init
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
 
   editorSetStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find");
 
-  while (1) {
+  while (true) {
     editorRefreshScreen();
     editorProcessKeypress();
   }
@@ -156,12 +156,12 @@ void initEditor(void) {
   E.colOffset = 0;
   E.numlines = 0;
   E.lines = NULL;
-  E.dirty = 0;
+  E.dirty = false;
   E.filename = NULL;
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
 
-  if (getWindowSize(&E.screenRows, &E.screenCols) == -1)
+  if (!getWindowSize(&E.screenRows, &E.screenCols))
     die("getWindowSize");
 
   E.screenRows -= 2;
@@ -229,7 +229,7 @@ void editorSave(void) {
         close(fd);
         free(buf);
         editorSetStatusMessage("%d bytes written to disk", len);
-        E.dirty = 0;
+        E.dirty = false;
         return;
       }
     }
@@ -246,7 +246,7 @@ char *findLastOccurrence(char *lasMatch, char *query, char *lineContent) {
   char *prev = NULL;
   char *cur = lineContent;
 
-  while (1) {
+  while (true) {
     cur = strstr(cur, query);
     if (cur == lasMatch) break;
     prev = cur;
@@ -264,18 +264,15 @@ void clearSearchHighlight(void) {
   }
 }
 
-int editorFindCallback(char *query, int key) {
+bool editorFindCallback(char *query, int key) {
   static int current;
   static int direction;
   static char *match = NULL;
 
   clearSearchHighlight();
 
-  if (*query == '\0') {
-    return 0;
-  }
-  else if (key == '\r' || key == '\x1b') {
-    return -1;
+  if (*query == '\0' || key == '\r' || key == '\x1b') {
+    return false;
   }
 
   if (key == ARROW_RIGHT || key == ARROW_DOWN) {
@@ -290,12 +287,13 @@ int editorFindCallback(char *query, int key) {
     match = E.lines[current].renderContent + E.savedLastX;
   }
 
-  int found = 0;
   int lastMatchIndex;
   char *lastMatch;
 
   int limit = current;
-  while (1) {
+  bool found = false;
+
+  while (true) {
     editorLine *line = &E.lines[current];
 
     if (match) {
@@ -328,7 +326,7 @@ int editorFindCallback(char *query, int key) {
 
         editorScrollY();
 
-        found = 1;
+        found = true;
 
         lastMatchIndex = current;
         lastMatch = match;
@@ -538,7 +536,7 @@ void editorInsertChar(int c) {
 
   E.cursorX++;
   E.highestLastX = E.cursorX;
-  E.dirty++;
+  E.dirty = true;
 }
 
 void editorDeleteChar(void) {
@@ -557,7 +555,7 @@ void editorDeleteChar(void) {
   }
 
   E.highestLastX = E.cursorX;
-  E.dirty++;
+  E.dirty = true;
 }
 
 void editorInsertNewLine(void) {
@@ -579,7 +577,7 @@ void editorInsertNewLine(void) {
 
   E.highestLastX = E.cursorX;
   E.cursorY++;
-  E.dirty++;
+  E.dirty = true;
 }
 
 /*** Terminal ***/
@@ -668,10 +666,10 @@ int editorReadKey(void) {
   return c;
 }
 
-int getCursorPosition(int *rows, int *cols) {
+bool getCursorPosition(int *rows, int *cols) {
   // Request cursor position (reports as "\x1b[#;#R")
   if (write(STDOUT_FILENO, "\x1b[6n", 4) != 4) 
-    return -1;
+    return false;
 
   char buffer[32];
   int i = 0;
@@ -684,28 +682,28 @@ int getCursorPosition(int *rows, int *cols) {
   buffer[i] = '\0';
 
   if (buffer[0] != '\x1b' || buffer[1] != '[')
-    return -1;
+    return false;
 
   if (sscanf(&buffer[2], "%d;%d", rows, cols) != 2)
-    return -1;
+    return false;
 
-  return 0;
+  return true;
 }
 
-int getWindowSize(int *rows, int *cols) {
+bool getWindowSize(int *rows, int *cols) {
   struct winsize ws;
 
   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
     // Moves cursor 999 spaces right and down, respectively
     if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) == -1)
-      return -1;
+      return false;
 
     return getCursorPosition(rows, cols);
   }
   else {
     *rows = ws.ws_row;
     *cols = ws.ws_col;
-    return 0;
+    return true;
   }
 }
 
@@ -887,7 +885,7 @@ void editorSetStatusMessage(const char *format, ...) {
 
 /*** Input ***/
 
-char *editorPrompt(char *prompt, int (*callback)(char *, int)) {
+char *editorPrompt(char *prompt, bool (*callback)(char *, int)) {
   // Used only in search
   E.savedLastX = E.cursorX;
   E.savedLastY = E.cursorY;
@@ -900,7 +898,7 @@ char *editorPrompt(char *prompt, int (*callback)(char *, int)) {
   size_t buflen = 0;
   buf[0] = '\0';
 
-  while (1) {
+  while (true) {
     editorSetStatusMessage(prompt, buf);
     editorRefreshScreen();
 
