@@ -25,6 +25,9 @@
 #define TAB_SIZE 2
 #define QUIT_TIMES 2
 
+// Highlight flags
+#define HIGHLIGHT_NUMBERS (1 << 0)
+
 enum editorKeys {
   BACKSPACE = 127,
   ARROW_UP = 1000,
@@ -44,6 +47,11 @@ enum editorHighlight {
   HL_CURRENT_MATCH,
   HL_NUMBER
 };
+
+typedef struct {
+  char **filematch;
+  int flags;
+} editorSyntax;
 
 typedef struct {
   char *content, *renderContent;
@@ -70,6 +78,7 @@ struct editorConfig {
   char *filename;
   char statusmsg[80];
   time_t statusmsg_time;
+  editorSyntax *syntax;
   struct termios original_state;
 } E;
 
@@ -92,6 +101,7 @@ void editorFind(void);
 bool isSeparator(int);
 void editorUpdateHighlight(editorLine *line);
 int editorSyntaxToColor(int);
+void editorSelectSyntaxHighlight(void);
 // Line operations
 int editorLineCxToRx(editorLine *line, int cursorX);
 int editorLineRxToCx(editorLine *line, int rCursorX);
@@ -124,6 +134,20 @@ void initEditor(void);
 // Buffer
 void appendBuffer(buffer *, const char *string, int length);
 void freeBuffer(buffer *);
+
+/*** Filetypes ***/
+
+char *C_EXTENSIONS[] = {".c", ".cpp", ".h", NULL};
+
+// Highlight Database
+editorSyntax HLDB[] = {
+  {
+    C_EXTENSIONS,
+    HIGHLIGHT_NUMBERS
+  }
+};
+
+#define HLDB_ENTRIES (int)(sizeof(HLDB) / sizeof(HLDB[0]))
 
 /*** Init ***/
 
@@ -160,6 +184,7 @@ void initEditor(void) {
   E.filename = NULL;
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
+  E.syntax = NULL;
 
   if (!getWindowSize(&E.screenRows, &E.screenCols))
     die("getWindowSize");
@@ -188,8 +213,9 @@ char *editorLinesToString(int *buflen) {
 }
 
 void editorOpen(char *filename) {
-  free(E.filename);
   E.filename = strdup(filename);
+
+  editorSelectSyntaxHighlight();
 
   FILE *file = fopen(filename, "r");
   if (file == NULL)
@@ -216,6 +242,7 @@ void editorSave(void) {
       editorSetStatusMessage("Save aborted");
       return;
     }
+    editorSelectSyntaxHighlight();
   }
 
   int len;
@@ -369,6 +396,8 @@ void editorUpdateHighlight(editorLine *line) {
   line->highlight = realloc(line->highlight, line->renderLength);
   memset(line->highlight, HL_NORMAL, line->renderLength);
 
+  if (E.syntax == NULL) return;
+
   bool isPrevSep = true;
 
   int i = 0;
@@ -376,16 +405,18 @@ void editorUpdateHighlight(editorLine *line) {
     char c = line->renderContent[i];
     unsigned char prevHL = (i > 0) ? line->highlight[i - 1] : HL_NORMAL;
 
-    bool isInt = isdigit(c) && (isPrevSep || prevHL == HL_NUMBER);
-    bool isFloat = c == '.' && prevHL == HL_NUMBER;
+    if (E.syntax->flags & HIGHLIGHT_NUMBERS) {
+      bool isInt = isdigit(c) && (isPrevSep || prevHL == HL_NUMBER);
+      bool isFloat = c == '.' && prevHL == HL_NUMBER;
 
-    if (isInt || isFloat) {
-      line->highlight[i] = HL_NUMBER;
-      isPrevSep = false;
+      if (isInt || isFloat) {
+        line->highlight[i] = HL_NUMBER;
+        isPrevSep = false;
+      }
+
+      isPrevSep = isSeparator(c);
+      i++;
     }
-
-    isPrevSep = isSeparator(c);
-    i++;
   }
 }
 
@@ -395,6 +426,32 @@ int editorSyntaxToColor(int highlight) {
     case HL_CURRENT_MATCH: return 7;
     case HL_NUMBER: return 32;
     default: return 39; 
+  }
+}
+
+void editorSelectSyntaxHighlight(void) {
+  E.syntax = NULL;
+
+  if (E.filename == NULL) return;
+
+  char *extension = strrchr(E.filename, '.');
+
+  for (int i = 0; i < HLDB_ENTRIES; i++) {
+    editorSyntax *syntax = &HLDB[i];
+    for (int j = 0; syntax->filematch[j]; j++) {
+      bool isExtension = (syntax->filematch[j][0] == '.');
+
+      if ((isExtension && extension && !strcmp(extension, syntax->filematch[j])) || 
+          (!isExtension && strstr(E.filename, syntax->filematch[j]))) {
+        E.syntax = syntax;
+
+        for (int k = 0; k < E.numlines; k++) {
+          editorUpdateHighlight(&E.lines[k]);
+        }
+
+        return;
+      }
+    }
   }
 }
 
