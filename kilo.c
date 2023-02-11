@@ -14,6 +14,7 @@
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define MIN(a, b) (a < b ? a : b)
 #define CLAMP(min, value, max) (value < min ? min : value > max ? max : value)
@@ -40,7 +41,8 @@ enum editorKeys {
 enum editorHighlight {
   HL_NORMAL = 0,
   HL_MATCH, 
-  HL_CURRENT_MATCH
+  HL_CURRENT_MATCH,
+  HL_NUMBER
 };
 
 typedef struct {
@@ -87,7 +89,9 @@ char *findLastOccurrence(char *lasMatch, char *query, char *lineContent);
 int editorFindCallback(char *query, int key);
 void editorFind(void);
 // Syntax highlighting
+bool isSeparator(int);
 void editorUpdateHighlight(editorLine *line);
+int editorSyntaxToColor(int);
 // Line operations
 int editorLineCxToRx(editorLine *line, int cursorX);
 int editorLineRxToCx(editorLine *line, int rCursorX);
@@ -359,15 +363,39 @@ void editorFind(void) {
 
 /*** Syntax highlighting ***/
 
+bool isSeparator(int c) {
+  return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
+}
+
 void editorUpdateHighlight(editorLine *line) {
   line->highlight = realloc(line->highlight, line->renderLength);
   memset(line->highlight, HL_NORMAL, line->renderLength);
+
+  bool isPrevSep = true;
+
+  int i = 0;
+  while (i < line->renderLength) {
+    char c = line->renderContent[i];
+    unsigned char prevHL = (i > 0) ? line->highlight[i - 1] : HL_NORMAL;
+
+    bool isInt = isdigit(c) && (isPrevSep || prevHL == HL_NUMBER);
+    bool isFloat = c == '.' && prevHL == HL_NUMBER;
+
+    if (isInt || isFloat) {
+      line->highlight[i] = HL_NUMBER;
+      isPrevSep = false;
+    }
+
+    isPrevSep = isSeparator(c);
+    i++;
+  }
 }
 
 int editorSyntaxToColor(int highlight) {
   switch (highlight) {
     case HL_MATCH: return 41;
     case HL_CURRENT_MATCH: return 7;
+    case HL_NUMBER: return 32;
     default: return 39; 
   }
 }
@@ -753,7 +781,7 @@ void editorDrawLines(buffer *buff) {
         if (highlight[j] == HL_NORMAL) {
           if (currentColor != -1) {
             currentColor = -1;
-            appendBuffer(buff, "\x1b[m", 5);
+            appendBuffer(buff, "\x1b[m", 4);
             appendBuffer(buff, "\x1b[39m", 5);
             appendBuffer(buff, "\x1b[49m", 5);
           }
