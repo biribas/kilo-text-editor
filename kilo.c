@@ -2,6 +2,8 @@
 #define _BSD_SOURCE
 #define _GNU_SOURCE
 
+// teste
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,11 +45,11 @@ enum editorKeys {
 };
 
 enum editorHighlight {
-  HL_NORMAL = 0,
-  HL_STRING,
-  HL_MATCH, 
-  HL_CURRENT_MATCH,
-  HL_NUMBER
+  HL_NORMAL = -1,
+  HL_NUMBER = 32,
+  HL_STRING = 93,
+  HL_MATCH = 41, 
+  HL_CURRENT_MATCH = 7
 };
 
 typedef struct {
@@ -102,7 +104,6 @@ void editorFind(void);
 // Syntax highlighting
 bool isSeparator(int);
 void editorUpdateHighlight(editorLine *line);
-int editorSyntaxToColor(int);
 void editorSelectSyntaxHighlight(void);
 // Line operations
 int editorLineCxToRx(editorLine *line, int cursorX);
@@ -445,16 +446,6 @@ void editorUpdateHighlight(editorLine *line) {
       isPrevSep = isSeparator(c);
       i++;
     }
-  }
-}
-
-int editorSyntaxToColor(int highlight) {
-  switch (highlight) {
-    case HL_MATCH: return 41;
-    case HL_CURRENT_MATCH: return 7;
-    case HL_NUMBER: return 32;
-    case HL_STRING: return 93;
-    default: return 39; 
   }
 }
 
@@ -854,34 +845,36 @@ void editorDrawLines(buffer *buff) {
       }
     }
     else {
-      int length = E.lines[filerow].renderLength - E.colOffset;
-      length = CLAMP(0, length, E.screenCols);
+      int length = CLAMP(0, E.lines[filerow].renderLength - E.colOffset, E.screenCols);
 
-      char *content = &E.lines[filerow].renderContent[E.colOffset];
+      char *line = &E.lines[filerow].renderContent[E.colOffset];
       unsigned char *highlight = &E.lines[filerow].highlight[E.colOffset];
       
-      int currentColor = -1;
+      int prevColor = HL_NORMAL;
+
+      const char *clearHighlight = "\x1b[0;39;49m";
+      const int clearLen = strlen(clearHighlight);
+
       for (int j = 0; j < length; j++) {
-        if (highlight[j] == HL_NORMAL) {
-          if (currentColor != -1) {
-            currentColor = -1;
-            appendBuffer(buff, "\x1b[m", 4);
-            appendBuffer(buff, "\x1b[39m", 5);
-            appendBuffer(buff, "\x1b[49m", 5);
-          }
-        }
-        else {
-          int color = editorSyntaxToColor(highlight[j]);
-          if (color != currentColor) {
-            currentColor = color;
+        int color = highlight[j];
+
+        if (prevColor != color) {
+          prevColor = color;
+          appendBuffer(buff, clearHighlight, clearLen);
+
+          if (color != HL_NORMAL) {
             char ansi[16];
             int len = snprintf(ansi, sizeof(ansi), "\x1b[%dm", color);
             appendBuffer(buff, ansi, len);
           }
         }
-        appendBuffer(buff, &content[j], 1);
+
+        appendBuffer(buff, &line[j], 1);
       }
-      appendBuffer(buff, "\x1b[39m", 5);
+
+      if (prevColor != HL_NORMAL) {
+        appendBuffer(buff, clearHighlight, clearLen);
+      }
     }
 
     appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
