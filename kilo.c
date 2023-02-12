@@ -27,6 +27,7 @@
 
 // Highlight flags
 #define HIGHLIGHT_NUMBERS (1 << 0)
+#define HIGHLIGHT_STRINGS (1 << 1)
 
 enum editorKeys {
   BACKSPACE = 127,
@@ -43,6 +44,7 @@ enum editorKeys {
 
 enum editorHighlight {
   HL_NORMAL = 0,
+  HL_STRING,
   HL_MATCH, 
   HL_CURRENT_MATCH,
   HL_NUMBER
@@ -143,7 +145,7 @@ char *C_EXTENSIONS[] = {".c", ".cpp", ".h", NULL};
 editorSyntax HLDB[] = {
   {
     C_EXTENSIONS,
-    HIGHLIGHT_NUMBERS
+    HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS
   }
 };
 
@@ -399,11 +401,37 @@ void editorUpdateHighlight(editorLine *line) {
   if (E.syntax == NULL) return;
 
   bool isPrevSep = true;
+  int inString = 0;
 
   int i = 0;
   while (i < line->renderLength) {
     char c = line->renderContent[i];
     unsigned char prevHL = (i > 0) ? line->highlight[i - 1] : HL_NORMAL;
+
+    if (E.syntax->flags & HIGHLIGHT_STRINGS) {
+      if (inString) {
+        line->highlight[i] = HL_STRING;
+
+        if (c == '\\' && i + 1 < line->length) {
+          line->highlight[i + 1] = HL_STRING;
+          i += 2;
+          continue;
+        }
+
+        if (c == inString) 
+          inString = 0;
+
+        isPrevSep = true;
+        i++;
+        continue;
+      }
+      else if (c == '"' || c == '\'') {
+        inString = c;
+        line->highlight[i] = HL_STRING;
+        i++;
+        continue;
+      }
+    }
 
     if (E.syntax->flags & HIGHLIGHT_NUMBERS) {
       bool isInt = isdigit(c) && (isPrevSep || prevHL == HL_NUMBER);
@@ -425,6 +453,7 @@ int editorSyntaxToColor(int highlight) {
     case HL_MATCH: return 41;
     case HL_CURRENT_MATCH: return 7;
     case HL_NUMBER: return 32;
+    case HL_STRING: return 93;
     default: return 39; 
   }
 }
