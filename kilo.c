@@ -2,8 +2,6 @@
 #define _BSD_SOURCE
 #define _GNU_SOURCE
 
-// teste
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,12 +46,20 @@ enum editorHighlight {
   HL_NORMAL = -1,
   HL_NUMBER = 32,
   HL_STRING = 93,
+  HL_COMMENT = 245,
   HL_MATCH = 41, 
   HL_CURRENT_MATCH = 7
 };
 
 typedef struct {
   char **filematch;
+  struct {
+    char *singleline;
+    struct {
+      char *start;
+      char *end;
+    } multiline;
+  } comment;
   int flags;
 } editorSyntax;
 
@@ -146,6 +152,7 @@ char *C_EXTENSIONS[] = {".c", ".cpp", ".h", NULL};
 editorSyntax HLDB[] = {
   {
     C_EXTENSIONS,
+    { "//", { "/*", "*/" } },
     HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS
   }
 };
@@ -401,6 +408,9 @@ void editorUpdateHighlight(editorLine *line) {
 
   if (E.syntax == NULL) return;
 
+  char *singlelineComment = E.syntax->comment.singleline;
+  int scLen = singlelineComment ? strlen(singlelineComment) : 0;
+
   bool isPrevSep = true;
   int inString = 0;
 
@@ -408,6 +418,13 @@ void editorUpdateHighlight(editorLine *line) {
   while (i < line->renderLength) {
     char c = line->renderContent[i];
     unsigned char prevHL = (i > 0) ? line->highlight[i - 1] : HL_NORMAL;
+
+    if (singlelineComment && !inString) {
+      if (!strncmp(&line->renderContent[i], singlelineComment, scLen)) {
+        memset(&line->highlight[i], HL_COMMENT, line->renderLength - i);
+        break;
+      }
+    }
 
     if (E.syntax->flags & HIGHLIGHT_STRINGS) {
       if (inString) {
@@ -864,7 +881,13 @@ void editorDrawLines(buffer *buff) {
 
           if (color != HL_NORMAL) {
             char ansi[16];
-            int len = snprintf(ansi, sizeof(ansi), "\x1b[%dm", color);
+            int len;
+            if (color == HL_COMMENT) {
+              len = snprintf(ansi, sizeof(ansi), "\x1b[38;5;%dm", color);
+            }
+            else {
+              len = snprintf(ansi, sizeof(ansi), "\x1b[%dm", color);
+            }
             appendBuffer(buff, ansi, len);
           }
         }
