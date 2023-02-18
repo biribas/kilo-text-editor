@@ -1023,12 +1023,16 @@ void editorDrawStatusBar(buffer *buff) {
 }
 
 void editorDrawMessageBar(buffer *buff) {
+  editorHighlightOutput(buff, theme.background);
   appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
+
   int len = strlen(E.statusmsg);
   len = MIN(len, E.screenCols);
 
   if (len && time(NULL) - E.statusmsg_time < 5)
     appendBuffer(buff, E.statusmsg, len);
+
+  appendBuffer(buff, "\x1b[0m", 4); // Reset style and colors
 }
 
 void editorRefreshScreen(void) {
