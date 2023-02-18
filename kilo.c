@@ -42,17 +42,29 @@ enum editorKeys {
   PAGE_DOWN
 };
 
-enum editorHighlight {
-  HL_NORMAL = -1,
-  HL_NUMBER = 32,
-  HL_STRING = 93,
-  HL_COMMENT = 245,
-  HL_MATCH = 41, 
-  HL_CURRENT_MATCH = 7
-};
+typedef struct {
+  unsigned char r;
+  unsigned char g;
+  unsigned char b;
+  bool isBackground;
+} color_t;
+
+struct {
+  color_t background;
+  color_t text;
+  color_t darkText;
+  color_t keyword;
+  color_t datatype;
+  color_t number;
+  color_t string;
+  color_t comment;
+  color_t match;
+  color_t currentMatch;
+} theme;
 
 typedef struct {
   char **filematch;
+  char **keywords;
   struct {
     char *singleline;
     struct {
@@ -66,7 +78,7 @@ typedef struct {
 typedef struct {
   char *content, *renderContent;
   int length, renderLength;
-  unsigned char *highlight;
+  color_t *highlight;
 } editorLine;
 
 typedef struct {
@@ -109,6 +121,8 @@ bool editorFindCallback(char *query, int key);
 void editorFind(void);
 // Syntax highlighting
 bool isSeparator(int);
+bool colorcmp(color_t, color_t);
+void colorLine(editorLine *line, int start, color_t, int len);
 void editorUpdateHighlight(editorLine *line);
 void editorSelectSyntaxHighlight(void);
 // Line operations
@@ -130,6 +144,8 @@ void editorInsertNewLine(void);
 void editorScrollX(void);
 void editorScrollY(void);
 void editorDrawLines(buffer *);
+void editorHighlightOutput(buffer *buff, color_t color);
+void editorDefaultHighlight(buffer *buff);
 void editorDrawStatusBar(buffer *);
 void editorDrawMessageBar(buffer *);
 void editorRefreshScreen(void);
@@ -140,6 +156,7 @@ void editorMoveCursor(int);
 void editorProcessKeypress(void);
 // Init
 void initEditor(void);
+void initColors(void);
 // Buffer
 void appendBuffer(buffer *, const char *string, int length);
 void freeBuffer(buffer *);
@@ -147,11 +164,18 @@ void freeBuffer(buffer *);
 /*** Filetypes ***/
 
 char *C_EXTENSIONS[] = {".c", ".cpp", ".h", NULL};
+char *C_KEYWORDS[] = {
+  "switch", "if", "while", "for", "break", "continue", "return", "else",
+  "struct", "union", "typedef", "static", "enum", "class", "case",
+  "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|",
+  "void|", NULL
+};
 
 // Highlight Database
 editorSyntax HLDB[] = {
   {
     C_EXTENSIONS,
+    C_KEYWORDS,
     { "//", { "/*", "*/" } },
     HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS
   }
@@ -164,6 +188,7 @@ editorSyntax HLDB[] = {
 int main(int argc, char **argv) {
   enableRawMode();
   initEditor();
+  initColors();
 
   if (argc >= 2) {
     editorOpen(argv[1]);
@@ -200,6 +225,19 @@ void initEditor(void) {
     die("getWindowSize");
 
   E.screenRows -= 2;
+}
+
+void initColors(void) {
+  theme.background = (color_t){30, 30, 46, true};
+  theme.text = (color_t){205, 214, 244, false};
+  theme.darkText = (color_t){17, 17, 17, false};
+  theme.keyword = (color_t){203, 166, 247, false};
+  theme.datatype = (color_t){249, 226, 175, false};
+  theme.number = (color_t){250, 179, 135, false};
+  theme.string = (color_t){166, 227, 161, false};
+  theme.comment = (color_t){108, 112, 134, false};
+  theme.match = (color_t){137, 180, 250, true};
+  theme.currentMatch = (color_t){137, 220, 235, true};
 }
 
 /*** File i/o ***/
@@ -375,7 +413,7 @@ bool editorFindCallback(char *query, int key) {
         match = E.lines[current].renderContent - 1;
       }
       else {
-        memset(&line->highlight[match - line->renderContent], HL_MATCH, strlen(query));
+        colorLine(line, match - line->renderContent, theme.match, strlen(query));
       }
     }
   }
@@ -383,9 +421,8 @@ bool editorFindCallback(char *query, int key) {
   if (found) {
     current = lastMatchIndex;
     match = lastMatch;
-
     editorLine *line = &E.lines[current];
-    memset(&line->highlight[match - line->renderContent], HL_CURRENT_MATCH, strlen(query));
+    colorLine(line, match - line->renderContent, theme.currentMatch, strlen(query));
   }
 
   return found;
@@ -402,11 +439,23 @@ bool isSeparator(int c) {
   return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
 }
 
+bool colorcmp(color_t x, color_t y) {
+  return x.r == y.r && x.g == y.g && x.b == y.b;
+}
+
+void colorLine(editorLine *line, int start, color_t c, int len) {
+  for (int i = start, n = start + len; i < n; i++) {
+    line->highlight[i] = c;
+  }
+}
+
 void editorUpdateHighlight(editorLine *line) {
-  line->highlight = realloc(line->highlight, line->renderLength);
-  memset(line->highlight, HL_NORMAL, line->renderLength);
+  line->highlight = realloc(line->highlight, sizeof(color_t) * line->renderLength);
+  colorLine(line, 0, theme.text, line->renderLength);
 
   if (E.syntax == NULL) return;
+
+  char **keywords = E.syntax->keywords;
 
   char *singlelineComment = E.syntax->comment.singleline;
   int scLen = singlelineComment ? strlen(singlelineComment) : 0;
@@ -417,21 +466,21 @@ void editorUpdateHighlight(editorLine *line) {
   int i = 0;
   while (i < line->renderLength) {
     char c = line->renderContent[i];
-    unsigned char prevHL = (i > 0) ? line->highlight[i - 1] : HL_NORMAL;
+    color_t prevHL = (i > 0) ? line->highlight[i - 1] : theme.text;
 
     if (singlelineComment && !inString) {
       if (!strncmp(&line->renderContent[i], singlelineComment, scLen)) {
-        memset(&line->highlight[i], HL_COMMENT, line->renderLength - i);
+        colorLine(line, i, theme.comment, line->renderLength - i);
         break;
       }
     }
 
     if (E.syntax->flags & HIGHLIGHT_STRINGS) {
       if (inString) {
-        line->highlight[i] = HL_STRING;
+        line->highlight[i] = theme.string;
 
-        if (c == '\\' && i + 1 < line->length) {
-          line->highlight[i + 1] = HL_STRING;
+        if (c == '\\' && i + 1 < line->renderLength) {
+          line->highlight[i + 1] = theme.string;
           i += 2;
           continue;
         }
@@ -445,24 +494,53 @@ void editorUpdateHighlight(editorLine *line) {
       }
       else if (c == '"' || c == '\'') {
         inString = c;
-        line->highlight[i] = HL_STRING;
+        line->highlight[i] = theme.string;
         i++;
         continue;
       }
     }
 
     if (E.syntax->flags & HIGHLIGHT_NUMBERS) {
-      bool isInt = isdigit(c) && (isPrevSep || prevHL == HL_NUMBER);
-      bool isFloat = c == '.' && prevHL == HL_NUMBER;
+      bool isPrevNumber = colorcmp(prevHL, theme.number);
+
+      bool isInt = isdigit(c) && (isPrevSep || isPrevNumber);
+      bool isFloat = c == '.' && isPrevNumber;
 
       if (isInt || isFloat) {
-        line->highlight[i] = HL_NUMBER;
+        line->highlight[i] = theme.number;
         isPrevSep = false;
+        i++;
+        continue;
+      }
+    }
+
+    if (isPrevSep) {
+      int j;
+      for (j = 0; keywords[j]; j++) {
+        int klen = strlen(keywords[j]);
+        bool isDatatype = keywords[j][klen - 1] == '|';
+        if (isDatatype) klen--;
+      
+        if (i + klen >= line->renderLength)
+          continue;
+
+        if (!strncmp(&line->renderContent[i], keywords[j], klen) && 
+            isSeparator(line->renderContent[i + klen]))
+        {
+          colorLine(line, i, isDatatype ? theme.datatype : theme.keyword, klen);
+          i += klen;
+          break;
+        }
       }
 
-      isPrevSep = isSeparator(c);
-      i++;
+      if (keywords[j] != NULL) {
+        isPrevSep = false;
+        continue;
+      }
     }
+
+    isPrevSep = isSeparator(c);
+    i++;
   }
 }
 
@@ -835,10 +913,29 @@ void editorScrollY(void) {
   E.rowOffset = CLAMP(min, E.rowOffset, max);
 }
 
+void editorHighlightOutput(buffer *buff, color_t color) {
+  char ansi[24];
+  int len = snprintf(
+              ansi,
+              sizeof(ansi),
+              color.isBackground ? "\x1b[48;2;%d;%d;%dm" : "\x1b[38;2;%d;%d;%dm",
+              color.r, color.g, color.b
+            );
+  appendBuffer(buff, ansi, len);
+}
+
+void editorDefaultHighlight(buffer *buff) {
+  editorHighlightOutput(buff, theme.text);
+  editorHighlightOutput(buff, theme.background);
+}
+
 void editorDrawLines(buffer *buff) {
   for (int i = 0; i < E.screenRows; i++) {
     int filerow = i + E.rowOffset;
+
     if (filerow >= E.numlines) {
+      editorDefaultHighlight(buff);
+
       if (E.numlines == 0 && i == E.screenRows / 3) {
         char welcome[80];
         int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
@@ -862,44 +959,25 @@ void editorDrawLines(buffer *buff) {
       }
     }
     else {
+      color_t prevColor = theme.text;
+      editorDefaultHighlight(buff);
+
+      char *content = &E.lines[filerow].renderContent[E.colOffset];
       int length = CLAMP(0, E.lines[filerow].renderLength - E.colOffset, E.screenCols);
-
-      char *line = &E.lines[filerow].renderContent[E.colOffset];
-      unsigned char *highlight = &E.lines[filerow].highlight[E.colOffset];
-      
-      int prevColor = HL_NORMAL;
-
-      const char *clearHighlight = "\x1b[0;39;49m";
-      const int clearLen = strlen(clearHighlight);
+      color_t *highlight = &E.lines[filerow].highlight[E.colOffset];
 
       for (int j = 0; j < length; j++) {
-        int color = highlight[j];
+        color_t curColor = highlight[j];
 
-        if (prevColor != color) {
-          prevColor = color;
-          appendBuffer(buff, clearHighlight, clearLen);
-
-          if (color != HL_NORMAL) {
-            char ansi[16];
-            int len;
-            if (color == HL_COMMENT) {
-              len = snprintf(ansi, sizeof(ansi), "\x1b[38;5;%dm", color);
-            }
-            else {
-              len = snprintf(ansi, sizeof(ansi), "\x1b[%dm", color);
-            }
-            appendBuffer(buff, ansi, len);
-          }
+        if (!colorcmp(curColor, prevColor)) {
+          editorHighlightOutput(buff, curColor.isBackground ? theme.darkText : theme.background);
+          editorHighlightOutput(buff, curColor);
+          prevColor = curColor;
         }
-
-        appendBuffer(buff, &line[j], 1);
+        appendBuffer(buff, &content[j], 1);
       }
-
-      if (prevColor != HL_NORMAL) {
-        appendBuffer(buff, clearHighlight, clearLen);
-      }
+      editorDefaultHighlight(buff);
     }
-
     appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
     appendBuffer(buff, "\r\n", 2);
   }
