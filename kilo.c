@@ -346,7 +346,7 @@ bool editorFindCallback(char *query, int key) {
 
   clearSearchHighlight();
 
-  if (*query == '\0' || key == '\r' || key == '\x1b') {
+  if (E.numlines == 0 || *query == '\0' || key == '\r' || key == '\x1b') {
     return false;
   }
 
@@ -712,6 +712,7 @@ void editorInsertChar(int c) {
 }
 
 void editorDeleteChar(void) {
+  if (E.numlines == 0) return;
   if (E.cursorY == E.numlines) return;
   if (E.cursorX == 0 && E.cursorY == 0) return;
 
@@ -1126,6 +1127,7 @@ char *editorPrompt(char *prompt, bool (*callback)(char *, int)) {
 }
 
 void editorMoveCursor(int key) {
+  if (E.numlines == 0) return;
   editorLine *currentLine = &E.lines[E.cursorY];
 
   switch (key) {
@@ -1210,19 +1212,21 @@ void editorProcessKeypress(void) {
 
     case BACKSPACE:
     case CTRL_KEY('h'):
-    case DEL_KEY:
-      if (c == DEL_KEY) editorMoveCursor(ARROW_RIGHT);
+    case DEL_KEY: {
+      if (c == DEL_KEY) {
+        editorMoveCursor(ARROW_RIGHT);
+      }
       editorDeleteChar();
       break;
+    }
 
     case PAGE_UP:
     case PAGE_DOWN: {
-      if (c == PAGE_UP) {
-        E.cursorY = E.rowOffset;
-      }
-      else {
-        E.cursorY = MIN(E.rowOffset + E.screenRows, E.numlines) - 1;
-      }
+      if (E.numlines == 0) break;
+
+      E.cursorY = c == PAGE_UP
+        ? E.rowOffset
+        : MIN(E.rowOffset + E.screenRows, E.numlines) - 1;
 
       int times = E.screenRows;
       int direction = c == PAGE_UP ? ARROW_UP : ARROW_DOWN;
