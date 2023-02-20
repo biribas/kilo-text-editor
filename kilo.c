@@ -1251,7 +1251,8 @@ void editorProcessKeypress(void) {
       break;
     
     default:
-      editorInsertChar(c);
+      if (!iscntrl(c))
+        editorInsertChar(c);
       break;
   }
 
