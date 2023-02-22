@@ -62,22 +62,30 @@ struct {
   color_t currentMatch;
 } theme;
 
+struct comment {
+  char *value;
+  int length;
+};
+
 typedef struct {
   char **filematch;
   char **keywords;
+  int flags;
+
   struct {
-    char *singleline;
+    struct comment singleline;
     struct {
-      char *start;
-      char *end;
+      struct comment start;
+      struct comment end;
     } multiline;
   } comment;
-  int flags;
 } editorSyntax;
 
 typedef struct {
+  int index;
   char *content, *renderContent;
   int length, renderLength;
+  bool isOpenComment;
   color_t *highlight;
 } editorLine;
 
@@ -176,8 +184,8 @@ editorSyntax HLDB[] = {
   {
     C_EXTENSIONS,
     C_KEYWORDS,
-    { "//", { "/*", "*/" } },
-    HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS
+    HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS,
+    { {"//", 2}, { {"/*", 2}, {"*/", 2} } }
   }
 };
 
@@ -218,9 +226,9 @@ void initEditor(void) {
   E.dirty = false;
   E.filename = NULL;
   E.statusmsg[0] = '\0';
-  E.statusmsg_time = 0;
   E.syntax = NULL;
 
+  E.statusmsg_time = 0;
   if (!getWindowSize(&E.screenRows, &E.screenCols))
     die("getWindowSize");
 
@@ -456,11 +464,13 @@ void editorUpdateHighlight(editorLine *line) {
   if (E.syntax == NULL) return;
 
   char **keywords = E.syntax->keywords;
-
-  char *singlelineComment = E.syntax->comment.singleline;
-  int scLen = singlelineComment ? strlen(singlelineComment) : 0;
+  
+  struct comment singleline = E.syntax->comment.singleline;
+  struct comment multilineStart = E.syntax->comment.multiline.start;
+  struct comment multilineEnd = E.syntax->comment.multiline.end;
 
   bool isPrevSep = true;
+  bool inComment = line->index > 0 && E.lines[line->index - 1].isOpenComment;
   int inString = 0;
 
   int i = 0;
@@ -468,10 +478,31 @@ void editorUpdateHighlight(editorLine *line) {
     char c = line->renderContent[i];
     color_t prevHL = (i > 0) ? line->highlight[i - 1] : theme.text;
 
-    if (singlelineComment && !inString) {
-      if (!strncmp(&line->renderContent[i], singlelineComment, scLen)) {
+    if (singleline.length && !inString && !inComment) {
+      if (!strncmp(&line->renderContent[i], singleline.value, singleline.length)) {
         colorLine(line, i, theme.comment, line->renderLength - i);
         break;
+      }
+    }
+    
+    if (multilineStart.length && multilineEnd.length && !inString) {
+      if (inComment) {
+        if (!strncmp(&line->renderContent[i], multilineEnd.value, multilineEnd.length)) {
+          colorLine(line, i, theme.comment, multilineEnd.length);
+          i += multilineEnd.length;
+          inComment = false;
+          isPrevSep = true;
+        }
+        else {
+          line->highlight[i++] = theme.comment;
+        }
+        continue;
+      }
+      else if (!strncmp(&line->renderContent[i], multilineStart.value, multilineStart.length)) {
+        colorLine(line, i, theme.comment, multilineStart.length);
+        i += multilineStart.length;
+        inComment = true;
+        continue;
       }
     }
 
@@ -541,6 +572,14 @@ void editorUpdateHighlight(editorLine *line) {
 
     isPrevSep = isSeparator(c);
     i++;
+  }
+
+  bool changed = line->isOpenComment != inComment;
+  bool isLastLine = line->index + 1 >= E.numlines;
+  line->isOpenComment = inComment;
+
+  if (changed && !isLastLine) {
+    editorUpdateHighlight(&E.lines[line->index + 1]);
   }
 }
 
@@ -635,6 +674,11 @@ void editorInsertLine(int at, char *line, size_t length) {
   E.lines = realloc(E.lines, sizeof(editorLine) * (E.numlines + 1));
   memmove(&E.lines[at + 1], &E.lines[at], sizeof(editorLine) * (E.numlines - at));
 
+  for (int i = at + 1; i <= E.numlines; i++)
+    E.lines[i].index++;
+
+  E.lines[at].index = at;
+
   E.lines[at].length = length;
   E.lines[at].content = malloc(length + 1);
   memcpy(E.lines[at].content, line, length);
@@ -643,8 +687,9 @@ void editorInsertLine(int at, char *line, size_t length) {
   E.lines[at].highlight = NULL;
   E.lines[at].renderContent = NULL;
   E.lines[at].renderLength = 0;
-  editorUpdateLine(&E.lines[at]);
+  E.lines[at].isOpenComment = false;
 
+  editorUpdateLine(&E.lines[at]);
   E.numlines++;
 }
 
@@ -660,6 +705,10 @@ void editorDeleteLine(int at) {
 
   editorFreeLine(&E.lines[at]);
   memmove(&E.lines[at], &E.lines[at + 1], sizeof(editorLine) * (E.numlines - at - 1));
+
+  for (int i = at; i < E.numlines - 1; i++)
+    E.lines[i].index--;
+
   E.numlines--;
 }
 
