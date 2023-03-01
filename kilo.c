@@ -444,7 +444,7 @@ void editorFind(void) {
 /*** Syntax highlighting ***/
 
 bool isSeparator(int c) {
-  return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
+  return isspace(c) || c == '\0' || strchr("()[]{}<>,.+-/*=~%|&!;", c) != NULL;
 }
 
 bool colorcmp(color_t x, color_t y) {
