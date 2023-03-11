@@ -84,6 +84,14 @@ typedef struct {
 } editorSyntax;
 
 typedef struct {
+  bool isPrevSep;
+  bool inComment;
+  int inString;
+  int idx;
+  color_t prevHL;
+} highlightController;
+
+typedef struct {
   int index;
   char *content, *renderContent;
   int length, renderLength;
@@ -133,6 +141,12 @@ void editorFind(void);
 bool isSeparator(int);
 bool colorcmp(color_t, color_t);
 void colorLine(editorLine *line, int start, color_t, int len);
+bool highlightSinglelineComments(editorLine *line, highlightController *);
+bool highlightMultilineComments(editorLine *line, highlightController *);
+bool highlightStrings(editorLine *line, highlightController *);
+bool highlightNumbers(editorLine *line, highlightController *);
+bool highlightKeywords(editorLine *line, highlightController *);
+bool highlightOperators(editorLine *line, highlightController *);
 void editorUpdateHighlight(editorLine *line);
 void editorSelectSyntaxHighlight(void);
 // Line operations
@@ -462,141 +476,171 @@ void colorLine(editorLine *line, int start, color_t c, int len) {
   }
 }
 
+bool highlightSinglelineComments(editorLine *line, highlightController *hc) {
+  struct comment singleline = E.syntax->comment.singleline;
+
+  if (singleline.length && !hc->inString && !hc->inComment) {
+    if (!strncmp(&line->renderContent[hc->idx], singleline.value, singleline.length)) {
+      colorLine(line, hc->idx, theme.comment, line->renderLength - hc->idx);
+      hc->idx = line->renderLength;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool highlightMultilineComments(editorLine *line, highlightController *hc) {
+  struct comment multilineStart = E.syntax->comment.multiline.start;
+  struct comment multilineEnd = E.syntax->comment.multiline.end;
+
+  if (multilineStart.length && multilineEnd.length && !hc->inString) {
+    if (hc->inComment) {
+      if (!strncmp(&line->renderContent[hc->idx], multilineEnd.value, multilineEnd.length)) {
+        colorLine(line, hc->idx, theme.comment, multilineEnd.length);
+        hc->idx += multilineEnd.length;
+        hc->inComment = false;
+        hc->isPrevSep = true;
+      }
+      else {
+        line->highlight[hc->idx++] = theme.comment;
+      }
+      return true;
+    }
+    else if (!strncmp(&line->renderContent[hc->idx], multilineStart.value, multilineStart.length)) {
+      colorLine(line, hc->idx, theme.comment, multilineStart.length);
+      hc->idx += multilineStart.length;
+      hc->inComment = true;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool highlightStrings(editorLine *line, highlightController *hc) {
+  char c = line->renderContent[hc->idx];
+
+  if (E.syntax->flags & HIGHLIGHT_STRINGS) {
+    if (hc->inString) {
+      line->highlight[hc->idx] = theme.string;
+
+      if (c == '\\' && hc->idx + 1 < line->renderLength) {
+        line->highlight[hc->idx + 1] = theme.string;
+        hc->idx += 2;
+        return true;
+      }
+
+      if (c == hc->inString)  {
+        hc->inString = 0;
+      }
+
+      hc->isPrevSep = true;
+      hc->idx++;
+      return true;
+    }
+    else if (c == '"' || c == '\'') {
+      hc->inString = c;
+      line->highlight[hc->idx] = theme.string;
+      hc->idx++;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool highlightNumbers(editorLine *line, highlightController *hc) {
+  char c = line->renderContent[hc->idx];
+
+  if (E.syntax->flags & HIGHLIGHT_NUMBERS) {
+    bool isPrevNumber = colorcmp(hc->prevHL, theme.number);
+
+    bool isInt = isdigit(c) && (hc->isPrevSep || isPrevNumber);
+    bool isFloat = c == '.' && isPrevNumber;
+
+    if (isInt || isFloat) {
+      line->highlight[hc->idx] = theme.number;
+      hc->isPrevSep = false;
+      hc->idx++;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool highlightKeywords(editorLine *line, highlightController *hc) {
+  char **keywords = E.syntax->keywords;
+
+  if (hc->isPrevSep) {
+    int j;
+    for (j = 0; keywords[j]; j++) {
+      int klen = strlen(keywords[j]);
+      bool isDatatype = keywords[j][klen - 1] == '|';
+      if (isDatatype) klen--;
+    
+      if (hc->idx + klen >= line->renderLength)
+        continue;
+
+      if (!strncmp(&line->renderContent[hc->idx], keywords[j], klen) && 
+          isSeparator(line->renderContent[hc->idx + klen]))
+      {
+        colorLine(line, hc->idx, isDatatype ? theme.datatype : theme.keyword, klen);
+        hc->idx += klen;
+        hc->isPrevSep = false;
+        break;
+      }
+    }
+    return keywords[j] != NULL;
+  }
+  return false;
+}
+
+bool highlightOperators(editorLine *line, highlightController *hc) {
+  char **operators = E.syntax->operators;
+
+  int j;
+  for (j = 0; operators[j]; j++) {
+    if (line->renderContent[hc->idx] == operators[j][0]) {
+      colorLine(line, hc->idx, theme.operators, 1);
+      hc->idx++;
+      hc->isPrevSep = true;
+      break;
+    }
+  }
+  return operators[j] != NULL;
+}
+
 void editorUpdateHighlight(editorLine *line) {
   line->highlight = realloc(line->highlight, sizeof(color_t) * line->renderLength);
   colorLine(line, 0, theme.text, line->renderLength);
 
   if (E.syntax == NULL) return;
 
-  char **keywords = E.syntax->keywords;
-  char **operators = E.syntax->operators;
-  
-  struct comment singleline = E.syntax->comment.singleline;
-  struct comment multilineStart = E.syntax->comment.multiline.start;
-  struct comment multilineEnd = E.syntax->comment.multiline.end;
+  highlightController hc;
+  hc.isPrevSep = true;
+  hc.inComment = line->index > 0 && E.lines[line->index - 1].isOpenComment;
+  hc.inString = 0;
+  hc.idx = 0;
 
-  bool isPrevSep = true;
-  bool inComment = line->index > 0 && E.lines[line->index - 1].isOpenComment;
-  int inString = 0;
+  while (hc.idx < line->renderLength) {
+    hc.prevHL = (hc.idx > 0) ? line->highlight[hc.idx - 1] : theme.text;
 
-  int i = 0;
-  while (i < line->renderLength) {
-    char c = line->renderContent[i];
-    color_t prevHL = (i > 0) ? line->highlight[i - 1] : theme.text;
+    bool wasHighlighted = (
+      highlightSinglelineComments(line, &hc) ||
+      highlightMultilineComments(line, &hc) ||
+      highlightStrings(line, &hc) ||
+      highlightNumbers(line, &hc) ||
+      highlightKeywords(line, &hc) ||
+      highlightOperators(line, &hc)
+    );
 
-    if (singleline.length && !inString && !inComment) {
-      if (!strncmp(&line->renderContent[i], singleline.value, singleline.length)) {
-        colorLine(line, i, theme.comment, line->renderLength - i);
-        break;
-      }
-    }
-    
-    if (multilineStart.length && multilineEnd.length && !inString) {
-      if (inComment) {
-        if (!strncmp(&line->renderContent[i], multilineEnd.value, multilineEnd.length)) {
-          colorLine(line, i, theme.comment, multilineEnd.length);
-          i += multilineEnd.length;
-          inComment = false;
-          isPrevSep = true;
-        }
-        else {
-          line->highlight[i++] = theme.comment;
-        }
-        continue;
-      }
-      else if (!strncmp(&line->renderContent[i], multilineStart.value, multilineStart.length)) {
-        colorLine(line, i, theme.comment, multilineStart.length);
-        i += multilineStart.length;
-        inComment = true;
-        continue;
-      }
-    }
+    if (wasHighlighted) continue;
 
-    if (E.syntax->flags & HIGHLIGHT_STRINGS) {
-      if (inString) {
-        line->highlight[i] = theme.string;
-
-        if (c == '\\' && i + 1 < line->renderLength) {
-          line->highlight[i + 1] = theme.string;
-          i += 2;
-          continue;
-        }
-
-        if (c == inString) 
-          inString = 0;
-
-        isPrevSep = true;
-        i++;
-        continue;
-      }
-      else if (c == '"' || c == '\'') {
-        inString = c;
-        line->highlight[i] = theme.string;
-        i++;
-        continue;
-      }
-    }
-
-    if (E.syntax->flags & HIGHLIGHT_NUMBERS) {
-      bool isPrevNumber = colorcmp(prevHL, theme.number);
-
-      bool isInt = isdigit(c) && (isPrevSep || isPrevNumber);
-      bool isFloat = c == '.' && isPrevNumber;
-
-      if (isInt || isFloat) {
-        line->highlight[i] = theme.number;
-        isPrevSep = false;
-        i++;
-        continue;
-      }
-    }
-
-    if (isPrevSep) {
-      int j;
-      for (j = 0; keywords[j]; j++) {
-        int klen = strlen(keywords[j]);
-        bool isDatatype = keywords[j][klen - 1] == '|';
-        if (isDatatype) klen--;
-      
-        if (i + klen >= line->renderLength)
-          continue;
-
-        if (!strncmp(&line->renderContent[i], keywords[j], klen) && 
-            isSeparator(line->renderContent[i + klen]))
-        {
-          colorLine(line, i, isDatatype ? theme.datatype : theme.keyword, klen);
-          i += klen;
-          break;
-        }
-      }
-
-      if (keywords[j] != NULL) {
-        isPrevSep = false;
-        continue;
-      }
-    }
-
-    int j;
-    for (j = 0; operators[j]; j++) {
-      if (line->renderContent[i] == operators[j][0]) {
-        colorLine(line, i, theme.operators, 1);
-        i++;
-        break;
-      }
-    }
-
-    if (operators[j] != NULL) {
-      isPrevSep = true;
-      continue;
-    }
-
-    isPrevSep = isSeparator(c);
-    i++;
+    hc.isPrevSep = isSeparator(line->renderContent[hc.idx]);
+    hc.idx++;
   }
 
-  bool changed = line->isOpenComment != inComment;
+  bool changed = line->isOpenComment != hc.inComment;
   bool isLastLine = line->index + 1 >= E.numlines;
-  line->isOpenComment = inComment;
+  line->isOpenComment = hc.inComment;
 
   if (changed && !isLastLine) {
     editorUpdateHighlight(&E.lines[line->index + 1]);
