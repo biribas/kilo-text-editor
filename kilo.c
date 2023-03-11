@@ -60,6 +60,7 @@ struct {
   color_t comment;
   color_t match;
   color_t currentMatch;
+  color_t operators;
 } theme;
 
 struct comment {
@@ -70,6 +71,7 @@ struct comment {
 typedef struct {
   char **filematch;
   char **keywords;
+  char **operators;
   int flags;
 
   struct {
@@ -178,12 +180,14 @@ char *C_KEYWORDS[] = {
   "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|",
   "void|", NULL
 };
+char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", NULL};
 
 // Highlight Database
 editorSyntax HLDB[] = {
   {
     C_EXTENSIONS,
     C_KEYWORDS,
+    C_OPERATORS,
     HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS,
     { {"//", 2}, { {"/*", 2}, {"*/", 2} } }
   }
@@ -246,6 +250,7 @@ void initColors(void) {
   theme.comment = (color_t){108, 112, 134, false};
   theme.match = (color_t){137, 180, 250, true};
   theme.currentMatch = (color_t){137, 220, 235, true};
+  theme.operators = (color_t){116, 199, 236, false};
 }
 
 /*** File i/o ***/
@@ -464,6 +469,7 @@ void editorUpdateHighlight(editorLine *line) {
   if (E.syntax == NULL) return;
 
   char **keywords = E.syntax->keywords;
+  char **operators = E.syntax->operators;
   
   struct comment singleline = E.syntax->comment.singleline;
   struct comment multilineStart = E.syntax->comment.multiline.start;
@@ -568,6 +574,20 @@ void editorUpdateHighlight(editorLine *line) {
         isPrevSep = false;
         continue;
       }
+    }
+
+    int j;
+    for (j = 0; operators[j]; j++) {
+      if (line->renderContent[i] == operators[j][0]) {
+        colorLine(line, i, theme.operators, 1);
+        i++;
+        break;
+      }
+    }
+
+    if (operators[j] != NULL) {
+      isPrevSep = true;
+      continue;
     }
 
     isPrevSep = isSeparator(c);
