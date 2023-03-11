@@ -61,6 +61,7 @@ struct {
   color_t match;
   color_t currentMatch;
   color_t operators;
+  color_t brackets;
 } theme;
 
 struct comment {
@@ -72,6 +73,7 @@ typedef struct {
   char **filematch;
   char **keywords;
   char **operators;
+  char **brackets;
   int flags;
 
   struct {
@@ -195,6 +197,7 @@ char *C_KEYWORDS[] = {
   "void|", NULL
 };
 char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", NULL};
+char *C_BRACKETS[] = {"(", ")", "{", "}", "[", "]"};
 
 // Highlight Database
 editorSyntax HLDB[] = {
@@ -202,6 +205,7 @@ editorSyntax HLDB[] = {
     C_EXTENSIONS,
     C_KEYWORDS,
     C_OPERATORS,
+    C_BRACKETS,
     HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS,
     { {"//", 2}, { {"/*", 2}, {"*/", 2} } }
   }
@@ -265,6 +269,7 @@ void initColors(void) {
   theme.match = (color_t){137, 180, 250, true};
   theme.currentMatch = (color_t){137, 220, 235, true};
   theme.operators = (color_t){116, 199, 236, false};
+  theme.brackets = (color_t){147, 153, 178, false};
 }
 
 /*** File i/o ***/
@@ -595,10 +600,10 @@ bool highlightKeywords(editorLine *line, highlightController *hc) {
 
 bool highlightOperators(editorLine *line, highlightController *hc) {
   char **operators = E.syntax->operators;
-
   int j;
+
   for (j = 0; operators[j]; j++) {
-    if (line->renderContent[hc->idx] == operators[j][0]) {
+    if (line->renderContent[hc->idx] == *operators[j]) {
       colorLine(line, hc->idx, theme.operators, 1);
       hc->idx++;
       hc->isPrevSep = true;
@@ -606,6 +611,21 @@ bool highlightOperators(editorLine *line, highlightController *hc) {
     }
   }
   return operators[j] != NULL;
+}
+
+bool highlightBrackets(editorLine *line, highlightController *hc) {
+  char **brackets = E.syntax->brackets;
+  int j;
+
+  for (j = 0; brackets[j]; j++) {
+    if (line->renderContent[hc->idx] == *brackets[j]) {
+      colorLine(line, hc->idx, theme.brackets, 1);
+      hc->idx++;
+      hc->isPrevSep = true;
+      break;
+    }
+  }
+  return brackets[j] != NULL;
 }
 
 void editorUpdateHighlight(editorLine *line) {
@@ -629,7 +649,8 @@ void editorUpdateHighlight(editorLine *line) {
       highlightStrings(line, &hc) ||
       highlightNumbers(line, &hc) ||
       highlightKeywords(line, &hc) ||
-      highlightOperators(line, &hc)
+      highlightOperators(line, &hc) ||
+      highlightBrackets(line, &hc)
     );
 
     if (wasHighlighted) continue;
