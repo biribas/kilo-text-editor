@@ -55,6 +55,7 @@ struct {
   color_t darkText;
   color_t keyword;
   color_t datatype;
+  color_t preprocessor;
   color_t number;
   color_t string;
   color_t comment;
@@ -192,9 +193,10 @@ void freeBuffer(buffer *);
 char *C_EXTENSIONS[] = {".c", ".cpp", ".h", NULL};
 char *C_KEYWORDS[] = {
   "switch", "if", "while", "for", "break", "continue", "return", "else",
-  "struct", "union", "typedef", "static", "enum", "class", "case",
-  "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|",
-  "void|", NULL
+  "struct", "union", "typedef", "static", "enum", "class", "case", "int|",
+  "long|", "double|", "float|", "char|", "unsigned|", "signed|", "void|",
+  "#include", "#define", "#undef", "#ifdef", "#ifndef", "#if", "#elif",
+  "#else", "#endif", "#line", "#error", "#warning", "#region", "#endregion", NULL
 };
 char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", NULL};
 char *C_BRACKETS[] = {"(", ")", "{", "}", "[", "]"};
@@ -263,6 +265,7 @@ void initColors(void) {
   theme.darkText = (color_t){17, 17, 17, false};
   theme.keyword = (color_t){203, 166, 247, false};
   theme.datatype = (color_t){249, 226, 175, false};
+  theme.preprocessor = (color_t){245, 194, 231, false};
   theme.number = (color_t){250, 179, 135, false};
   theme.string = (color_t){166, 227, 161, false};
   theme.comment = (color_t){108, 112, 134, false};
@@ -534,7 +537,7 @@ bool highlightStrings(editorLine *line, highlightController *hc) {
         return true;
       }
 
-      if (c == hc->inString)  {
+      if (c == hc->inString) {
         hc->inString = 0;
       }
 
@@ -578,7 +581,9 @@ bool highlightKeywords(editorLine *line, highlightController *hc) {
     int j;
     for (j = 0; keywords[j]; j++) {
       int klen = strlen(keywords[j]);
+      bool isPreprocessor = keywords[j][0] == '#';
       bool isDatatype = keywords[j][klen - 1] == '|';
+
       if (isDatatype) klen--;
     
       if (hc->idx + klen >= line->renderLength)
@@ -587,7 +592,8 @@ bool highlightKeywords(editorLine *line, highlightController *hc) {
       if (!strncmp(&line->renderContent[hc->idx], keywords[j], klen) && 
           isSeparator(line->renderContent[hc->idx + klen]))
       {
-        colorLine(line, hc->idx, isDatatype ? theme.datatype : theme.keyword, klen);
+        color_t color = isDatatype ? theme.datatype : isPreprocessor ? theme.preprocessor : theme.keyword;
+        colorLine(line, hc->idx, color, klen);
         hc->idx += klen;
         hc->isPrevSep = false;
         break;
