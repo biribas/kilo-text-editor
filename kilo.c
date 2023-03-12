@@ -487,12 +487,12 @@ void colorLine(editorLine *line, int start, color_t c, int len) {
 bool highlightSinglelineComments(editorLine *line, highlightController *hc) {
   struct comment singleline = E.syntax->comment.singleline;
 
-  if (singleline.length && !hc->inString && !hc->inComment) {
-    if (!strncmp(&line->renderContent[hc->idx], singleline.value, singleline.length)) {
-      colorLine(line, hc->idx, theme.comment, line->renderLength - hc->idx);
-      hc->idx = line->renderLength;
-      return true;
-    }
+  if (!singleline.length || hc->inString || hc->inComment) return false;
+
+  if (!strncmp(&line->renderContent[hc->idx], singleline.value, singleline.length)) {
+    colorLine(line, hc->idx, theme.comment, line->renderLength - hc->idx);
+    hc->idx = line->renderLength;
+    return true;
   }
   return false;
 }
@@ -501,57 +501,61 @@ bool highlightMultilineComments(editorLine *line, highlightController *hc) {
   struct comment multilineStart = E.syntax->comment.multiline.start;
   struct comment multilineEnd = E.syntax->comment.multiline.end;
 
-  if (multilineStart.length && multilineEnd.length && !hc->inString) {
-    if (hc->inComment) {
-      if (!strncmp(&line->renderContent[hc->idx], multilineEnd.value, multilineEnd.length)) {
-        colorLine(line, hc->idx, theme.comment, multilineEnd.length);
-        hc->idx += multilineEnd.length;
-        hc->inComment = false;
-        hc->isPrevSep = true;
-      }
-      else {
-        line->highlight[hc->idx++] = theme.comment;
-      }
-      return true;
+  if (!multilineStart.length || !multilineEnd.length || hc->inString) return false;
+
+  if (hc->inComment) {
+    if (!strncmp(&line->renderContent[hc->idx], multilineEnd.value, multilineEnd.length)) {
+      colorLine(line, hc->idx, theme.comment, multilineEnd.length);
+      hc->idx += multilineEnd.length;
+      hc->inComment = false;
+      hc->isPrevSep = true;
     }
-    else if (!strncmp(&line->renderContent[hc->idx], multilineStart.value, multilineStart.length)) {
-      colorLine(line, hc->idx, theme.comment, multilineStart.length);
-      hc->idx += multilineStart.length;
-      hc->inComment = true;
-      return true;
+    else {
+      line->highlight[hc->idx++] = theme.comment;
     }
+    return true;
   }
+
+  if (!strncmp(&line->renderContent[hc->idx], multilineStart.value, multilineStart.length)) {
+    colorLine(line, hc->idx, theme.comment, multilineStart.length);
+    hc->idx += multilineStart.length;
+    hc->inComment = true;
+    return true;
+  }
+
   return false;
 }
 
 bool highlightStrings(editorLine *line, highlightController *hc) {
   char c = line->renderContent[hc->idx];
 
-  if (E.syntax->flags & HIGHLIGHT_STRINGS) {
-    if (hc->inString) {
-      line->highlight[hc->idx] = theme.string;
+  if (!(E.syntax->flags & HIGHLIGHT_STRINGS)) return false;
 
-      if (c == '\\' && hc->idx + 1 < line->renderLength) {
-        line->highlight[hc->idx + 1] = theme.string;
-        hc->idx += 2;
-        return true;
-      }
+  if (hc->inString) {
+    line->highlight[hc->idx] = theme.string;
 
-      if (c == hc->inString) {
-        hc->inString = 0;
-      }
-
-      hc->isPrevSep = true;
-      hc->idx++;
+    if (c == '\\' && hc->idx + 1 < line->renderLength) {
+      line->highlight[hc->idx + 1] = theme.string;
+      hc->idx += 2;
       return true;
     }
-    else if (c == '"' || c == '\'') {
-      hc->inString = c;
-      line->highlight[hc->idx] = theme.string;
-      hc->idx++;
-      return true;
+
+    if (c == hc->inString) {
+      hc->inString = 0;
     }
+
+    hc->isPrevSep = true;
+    hc->idx++;
+    return true;
   }
+
+  if (c == '"' || c == '\'') {
+    hc->inString = c;
+    line->highlight[hc->idx] = theme.string;
+    hc->idx++;
+    return true;
+  }
+
   return false;
 }
 
@@ -577,37 +581,37 @@ bool highlightNumbers(editorLine *line, highlightController *hc) {
 bool highlightKeywords(editorLine *line, highlightController *hc) {
   char **keywords = E.syntax->keywords;
 
-  if (hc->isPrevSep) {
-    int j;
-    for (j = 0; keywords[j]; j++) {
-      int klen = strlen(keywords[j]);
-      bool isPreprocessor = *keywords[j] == '#';
-      bool isDatatype = keywords[j][klen - 1] == '|';
+  if (!hc->isPrevSep) return false;
 
-      if (isDatatype) klen--;
-    
-      if (hc->idx + klen >= line->renderLength)
-        continue;
+  int j;
+  for (j = 0; keywords[j]; j++) {
+    int klen = strlen(keywords[j]);
+    bool isPreprocessor = *keywords[j] == '#';
+    bool isDatatype = keywords[j][klen - 1] == '|';
 
-      if (!strncmp(&line->renderContent[hc->idx], keywords[j], klen) && 
-          isSeparator(line->renderContent[hc->idx + klen]))
-      {
-        color_t color = isDatatype ? theme.datatype : isPreprocessor ? theme.preprocessor : theme.keyword;
-        colorLine(line, hc->idx, color, klen);
-        hc->idx += klen;
+    if (isDatatype) klen--;
+  
+    if (hc->idx + klen >= line->renderLength)
+      continue;
 
-        if (!strcmp(keywords[j], "#include")) {
-          colorLine(line, hc->idx, theme.string, line->renderLength - hc->idx);
-          hc->idx = line->renderLength;
-        }
+    if (!strncmp(&line->renderContent[hc->idx], keywords[j], klen) && 
+        isSeparator(line->renderContent[hc->idx + klen]))
+    {
+      color_t color = isDatatype ? theme.datatype : isPreprocessor ? theme.preprocessor : theme.keyword;
+      colorLine(line, hc->idx, color, klen);
+      hc->idx += klen;
 
-        hc->isPrevSep = false;
-        break;
+      if (!strcmp(keywords[j], "#include")) {
+        colorLine(line, hc->idx, theme.string, line->renderLength - hc->idx);
+        hc->idx = line->renderLength;
       }
+
+      hc->isPrevSep = false;
+      break;
     }
-    return keywords[j] != NULL;
   }
-  return false;
+
+  return keywords[j] != NULL;
 }
 
 bool highlightOperators(editorLine *line, highlightController *hc) {
