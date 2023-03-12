@@ -199,7 +199,7 @@ char *C_KEYWORDS[] = {
   "#else", "#endif", "#line", "#error", "#warning", "#region", "#endregion", NULL
 };
 char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", ".", NULL};
-char *C_BRACKETS[] = {"(", ")", "{", "}", "[", "]"};
+char *C_BRACKETS[] = {"(", ")", "{", "}", "[", "]", NULL};
 
 // Highlight Database
 editorSyntax HLDB[] = {
