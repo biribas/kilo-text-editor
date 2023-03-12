@@ -63,6 +63,7 @@ struct {
   color_t currentMatch;
   color_t operators;
   color_t brackets;
+  color_t endStatement;
 } theme;
 
 struct comment {
@@ -75,6 +76,7 @@ typedef struct {
   char **keywords;
   char **operators;
   char **brackets;
+  char **endStatements;
   int flags;
 
   struct {
@@ -200,6 +202,7 @@ char *C_KEYWORDS[] = {
 };
 char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", ".", NULL};
 char *C_BRACKETS[] = {"(", ")", "{", "}", "[", "]", NULL};
+char *C_END_STATEMENTS[] = {",", ";", NULL};
 
 // Highlight Database
 editorSyntax HLDB[] = {
@@ -208,6 +211,7 @@ editorSyntax HLDB[] = {
     C_KEYWORDS,
     C_OPERATORS,
     C_BRACKETS,
+    C_END_STATEMENTS,
     HIGHLIGHT_NUMBERS | HIGHLIGHT_STRINGS,
     { {"//", 2}, { {"/*", 2}, {"*/", 2} } }
   }
@@ -273,6 +277,7 @@ void initColors(void) {
   theme.currentMatch = (color_t){137, 220, 235, true};
   theme.operators = (color_t){116, 199, 236, false};
   theme.brackets = (color_t){147, 153, 178, false};
+  theme.endStatement = (color_t){147, 153, 178, false};
 }
 
 /*** File i/o ***/
@@ -644,6 +649,21 @@ bool highlightBrackets(editorLine *line, highlightController *hc) {
   return brackets[j] != NULL;
 }
 
+bool highlightEndStatemetns(editorLine *line, highlightController *hc) {
+  char **endStatements = E.syntax->endStatements;
+  int j;
+
+  for (j = 0; endStatements[j]; j++) {
+    if (line->renderContent[hc->idx] == *endStatements[j]) {
+      colorLine(line, hc->idx, theme.endStatement, 1);
+      hc->idx++;
+      hc->isPrevSep = true;
+      break;
+    }
+  }
+  return endStatements[j] != NULL;
+}
+
 void editorUpdateHighlight(editorLine *line) {
   line->highlight = realloc(line->highlight, sizeof(color_t) * line->renderLength);
   colorLine(line, 0, theme.text, line->renderLength);
@@ -666,7 +686,8 @@ void editorUpdateHighlight(editorLine *line) {
       highlightNumbers(line, &hc) ||
       highlightKeywords(line, &hc) ||
       highlightOperators(line, &hc) ||
-      highlightBrackets(line, &hc)
+      highlightBrackets(line, &hc) ||
+      highlightEndStatemetns(line, &hc)
     );
 
     if (wasHighlighted) continue;
