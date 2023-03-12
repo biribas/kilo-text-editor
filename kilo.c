@@ -198,7 +198,7 @@ char *C_KEYWORDS[] = {
   "#include", "#define", "#undef", "#ifdef", "#ifndef", "#if", "#elif",
   "#else", "#endif", "#line", "#error", "#warning", "#region", "#endregion", NULL
 };
-char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", NULL};
+char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", ".", NULL};
 char *C_BRACKETS[] = {"(", ")", "{", "}", "[", "]"};
 
 // Highlight Database
