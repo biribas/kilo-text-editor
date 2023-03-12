@@ -152,6 +152,7 @@ bool highlightStrings(editorLine *line, highlightController *);
 bool highlightNumbers(editorLine *line, highlightController *);
 bool highlightKeywords(editorLine *line, highlightController *);
 bool highlightOperators(editorLine *line, highlightController *);
+bool highlightSymbols(editorLine *line, highlightController *, char **symbols, color_t);
 void editorUpdateHighlight(editorLine *line);
 void editorSelectSyntaxHighlight(void);
 // Line operations
@@ -620,48 +621,28 @@ bool highlightKeywords(editorLine *line, highlightController *hc) {
 }
 
 bool highlightOperators(editorLine *line, highlightController *hc) {
-  char **operators = E.syntax->operators;
-  int j;
-
-  for (j = 0; operators[j]; j++) {
-    if (line->renderContent[hc->idx] == *operators[j]) {
-      colorLine(line, hc->idx, theme.operators, 1);
-      hc->idx++;
-      hc->isPrevSep = true;
-      break;
-    }
-  }
-  return operators[j] != NULL;
+  return highlightSymbols(line, hc, E.syntax->operators, theme.operators);
 }
 
 bool highlightBrackets(editorLine *line, highlightController *hc) {
-  char **brackets = E.syntax->brackets;
-  int j;
-
-  for (j = 0; brackets[j]; j++) {
-    if (line->renderContent[hc->idx] == *brackets[j]) {
-      colorLine(line, hc->idx, theme.brackets, 1);
-      hc->idx++;
-      hc->isPrevSep = true;
-      break;
-    }
-  }
-  return brackets[j] != NULL;
+  return highlightSymbols(line, hc, E.syntax->brackets, theme.brackets);
 }
 
 bool highlightEndStatemetns(editorLine *line, highlightController *hc) {
-  char **endStatements = E.syntax->endStatements;
-  int j;
+  return highlightSymbols(line, hc, E.syntax->endStatements, theme.endStatement);
+}
 
-  for (j = 0; endStatements[j]; j++) {
-    if (line->renderContent[hc->idx] == *endStatements[j]) {
-      colorLine(line, hc->idx, theme.endStatement, 1);
+bool highlightSymbols(editorLine *line, highlightController *hc, char **symbols, color_t color) {
+  int j;
+  for (j = 0; symbols[j]; j++) {
+    if (line->renderContent[hc->idx] == *symbols[j]) {
+      colorLine(line, hc->idx, color, 1);
       hc->idx++;
       hc->isPrevSep = true;
       break;
     }
   }
-  return endStatements[j] != NULL;
+  return symbols[j] != NULL;
 }
 
 void editorUpdateHighlight(editorLine *line) {
