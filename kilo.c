@@ -581,7 +581,7 @@ bool highlightKeywords(editorLine *line, highlightController *hc) {
     int j;
     for (j = 0; keywords[j]; j++) {
       int klen = strlen(keywords[j]);
-      bool isPreprocessor = keywords[j][0] == '#';
+      bool isPreprocessor = *keywords[j] == '#';
       bool isDatatype = keywords[j][klen - 1] == '|';
 
       if (isDatatype) klen--;
@@ -595,6 +595,12 @@ bool highlightKeywords(editorLine *line, highlightController *hc) {
         color_t color = isDatatype ? theme.datatype : isPreprocessor ? theme.preprocessor : theme.keyword;
         colorLine(line, hc->idx, color, klen);
         hc->idx += klen;
+
+        if (!strcmp(keywords[j], "#include")) {
+          colorLine(line, hc->idx, theme.string, line->renderLength - hc->idx);
+          hc->idx = line->renderLength;
+        }
+
         hc->isPrevSep = false;
         break;
       }
