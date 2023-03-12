@@ -557,19 +557,19 @@ bool highlightStrings(editorLine *line, highlightController *hc) {
 
 bool highlightNumbers(editorLine *line, highlightController *hc) {
   char c = line->renderContent[hc->idx];
+  char nextChar = hc->idx + 1 < line->renderLength ? line->renderContent[hc->idx + 1] : 0;
 
-  if (E.syntax->flags & HIGHLIGHT_NUMBERS) {
-    bool isPrevNumber = colorcmp(hc->prevHL, theme.number);
+  if (!(E.syntax->flags & HIGHLIGHT_NUMBERS)) return false;
 
-    bool isInt = isdigit(c) && (hc->isPrevSep || isPrevNumber);
-    bool isFloat = c == '.' && isPrevNumber;
+  bool isPrevNumber = colorcmp(hc->prevHL, theme.number);
+  bool isInt = isdigit(c) && (hc->isPrevSep || isPrevNumber);
+  bool isFloat = c == '.' && (isPrevNumber || isdigit(nextChar));
 
-    if (isInt || isFloat) {
-      line->highlight[hc->idx] = theme.number;
-      hc->isPrevSep = false;
-      hc->idx++;
-      return true;
-    }
+  if (isInt || isFloat) {
+    line->highlight[hc->idx] = theme.number;
+    hc->isPrevSep = false;
+    hc->idx++;
+    return true;
   }
   return false;
 }
