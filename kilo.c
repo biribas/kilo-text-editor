@@ -155,6 +155,7 @@ bool highlightOperators(editorLine *line, highlightController *);
 bool highlightSymbols(editorLine *line, highlightController *, char **symbols, color_t);
 void editorUpdateHighlight(editorLine *line);
 void editorSelectSyntaxHighlight(void);
+void clearSearchHighlight(void);
 // Line operations
 int editorLineCxToRx(editorLine *line, int cursorX);
 int editorLineRxToCx(editorLine *line, int rCursorX);
@@ -369,15 +370,6 @@ char *findLastOccurrence(char *lasMatch, char *query, char *lineContent) {
     cur++;
   }
   return prev;
-}
-
-void clearSearchHighlight(void) {  
-  int cur = E.rowOffset;
-  int last = MIN(cur + E.screenRows, E.numlines);
-  while (cur < last) {
-    editorUpdateHighlight(&E.lines[cur]);
-    cur++; 
-  }
 }
 
 bool editorFindCallback(char *query, int key) {
@@ -711,6 +703,16 @@ void editorSelectSyntaxHighlight(void) {
     }
   }
 }
+
+void clearSearchHighlight(void) {  
+  int cur = E.rowOffset;
+  int last = MIN(cur + E.screenRows, E.numlines);
+  while (cur < last) {
+    editorUpdateHighlight(&E.lines[cur]);
+    cur++; 
+  }
+}
+
 
 /*** Line operations ***/
 
