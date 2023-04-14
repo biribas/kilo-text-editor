@@ -16,9 +16,6 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-#define MIN(a, b) (a < b ? a : b)
-#define CLAMP(min, value, max) (value < min ? min : value > max ? max : value)
-#define MOD(a, b) ((a % b + b) % b)
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define BUFFER_INIT {NULL, 0}
 #define KILO_VERSION "0.0.1"
@@ -191,6 +188,10 @@ void initColors(void);
 // Buffer
 void appendBuffer(buffer *, const char *string, int length);
 void freeBuffer(buffer *);
+// Auxiliary functions
+int min(int, int);
+int clamp(int min, int value, int max);
+int mod(int, int);
 
 /*** Filetypes ***/
 
@@ -411,7 +412,7 @@ bool editorFindCallback(char *query, int key) {
     }
 
     if (!match) {
-      int nextLine = MOD(current + direction, E.numlines);
+      int nextLine = mod(current + direction, E.numlines);
       if (nextLine == limit) break;
       if (current + direction == limit) break;
 
@@ -441,7 +442,7 @@ bool editorFindCallback(char *query, int key) {
         direction = 1;
 
         current = E.rowOffset;
-        limit = MIN(E.rowOffset + E.screenRows, E.numlines);
+        limit = min(E.rowOffset + E.screenRows, E.numlines);
 
         match = E.lines[current].renderContent - 1;
       }
@@ -706,7 +707,7 @@ void editorSelectSyntaxHighlight(void) {
 
 void clearSearchHighlight(void) {  
   int cur = E.rowOffset;
-  int last = MIN(cur + E.screenRows, E.numlines);
+  int last = min(cur + E.screenRows, E.numlines);
   while (cur < last) {
     editorUpdateHighlight(&E.lines[cur]);
     cur++; 
@@ -1039,12 +1040,12 @@ bool getWindowSize(int *rows, int *cols) {
 void editorScrollX(void) {
   const int colOffsetGap = E.screenCols * 0.20;
 
-  int gap = MIN(colOffsetGap, E.rCursorX);
+  int gap = min(colOffsetGap, E.rCursorX);
 
   int min = E.rCursorX - E.screenCols + gap + 1;
   int max = E.rCursorX - gap;
 
-  E.colOffset = CLAMP(min, E.colOffset, max);
+  E.colOffset = clamp(min, E.colOffset, max);
 }
 
 void editorScrollY(void) {
@@ -1065,7 +1066,7 @@ void editorScrollY(void) {
   int min = E.cursorY - E.screenRows + 1 + gap;
   int max = E.cursorY - gap;
 
-  E.rowOffset = CLAMP(min, E.rowOffset, max);
+  E.rowOffset = clamp(min, E.rowOffset, max);
 }
 
 void editorHighlightOutput(buffer *buff, color_t color) {
@@ -1095,7 +1096,7 @@ void editorDrawLines(buffer *buff) {
         char welcome[80];
         int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
 
-        length = MIN(length, E.screenCols);
+        length = min(length, E.screenCols);
 
         int padding = (E.screenCols - length) / 2;
 
@@ -1118,7 +1119,7 @@ void editorDrawLines(buffer *buff) {
       editorDefaultHighlight(buff);
 
       char *content = &E.lines[filerow].renderContent[E.colOffset];
-      int length = CLAMP(0, E.lines[filerow].renderLength - E.colOffset, E.screenCols);
+      int length = clamp(0, E.lines[filerow].renderLength - E.colOffset, E.screenCols);
       color_t *highlight = &E.lines[filerow].highlight[E.colOffset];
 
       for (int j = 0; j < length; j++) {
@@ -1160,7 +1161,7 @@ void editorDrawStatusBar(buffer *buff) {
 
   int posLen = snprintf(position, sizeof(position), " %d:%d   %s ", E.cursorY + 1, E.rCursorX + 1, percent);
 
-  infoLen = MIN(infoLen, E.screenCols);
+  infoLen = min(infoLen, E.screenCols);
 
   appendBuffer(buff, info, infoLen);
 
@@ -1181,7 +1182,7 @@ void editorDrawMessageBar(buffer *buff) {
   appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
 
   int len = strlen(E.statusmsg);
-  len = MIN(len, E.screenCols);
+  len = min(len, E.screenCols);
 
   if (len && time(NULL) - E.statusmsg_time < 5)
     appendBuffer(buff, E.statusmsg, len);
@@ -1327,7 +1328,7 @@ void editorMoveCursor(int key) {
   }
 
   currentLine = &E.lines[E.cursorY];
-  E.cursorX = MIN(E.cursorX, currentLine->length);
+  E.cursorX = min(E.cursorX, currentLine->length);
 }
 
 void editorProcessKeypress(void) {
@@ -1384,7 +1385,7 @@ void editorProcessKeypress(void) {
 
       E.cursorY = c == PAGE_UP
         ? E.rowOffset
-        : MIN(E.rowOffset + E.screenRows, E.numlines) - 1;
+        : min(E.rowOffset + E.screenRows, E.numlines) - 1;
 
       int times = E.screenRows;
       int direction = c == PAGE_UP ? ARROW_UP : ARROW_DOWN;
@@ -1431,5 +1432,19 @@ void appendBuffer(buffer *buff, const char *string, int length) {
 
 void freeBuffer(buffer *buff) {
   free(buff->content);
+}
+
+/*** Auxiliary functions ***/
+
+int min(int a, int b) {
+  return (a < b ? a : b);
+}
+
+int clamp(int min, int value, int max) {
+  return (value < min ? min : value > max ? max : value);
+}
+
+int mod(int a, int b) {
+  return ((a % b + b) % b);
 }
 
