@@ -50,23 +50,28 @@ bool editorFindCallback(char *query, int key) {
   while (true) {
     editorLine *line = &E.lines[current];
 
+    // Same line
     if (match) {
       match = direction == -1
         ? findLastOccurrence(match, query, line->renderContent)
         : strstr(match + 1, query);
     }
 
+    // Next Line
     if (!match) {
-      int nextLine = mod(current + direction, E.numlines);
-      if (nextLine == limit) break;
-      if (current + direction == limit) break;
+      // Highlight case
+      if (found && current + direction == limit) break;
 
+      // Search case
+      int nextLine = mod(current + direction, E.numlines);
       current = nextLine;
       line = &E.lines[current];
 
       match = direction == -1
         ? findLastOccurrence(match, query, line->renderContent)
         : strstr(line->renderContent, query);
+
+      if (!match && current == limit) break;
     }
 
     if (match) {
