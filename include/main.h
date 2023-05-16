@@ -21,6 +21,7 @@
   #define KILO_VERSION "0.0.1"
   #define TAB_SIZE 2
   #define QUIT_TIMES 2
+  #define HELP_MESSAGE "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find"
 
   // Highlight flags
   #define HIGHLIGHT_NUMBERS (1 << 0)
