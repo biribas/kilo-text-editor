@@ -7,4 +7,5 @@
   int mod(int, int);
   bool isSeparator(int);
   bool colorcmp(color_t, color_t);
+  bool isDark(int r, int g, int b);
 #endif
