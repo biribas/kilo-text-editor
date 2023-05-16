@@ -44,12 +44,14 @@
     unsigned char g;
     unsigned char b;
     bool isBackground;
+    bool isDark;
   } color_t;
 
   typedef struct {
     color_t background;
     color_t lightText;
     color_t darkText;
+    color_t text;
     color_t keyword;
     color_t datatype;
     color_t preprocessor;
