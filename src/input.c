@@ -17,11 +17,12 @@ char *editorPrompt(char *prompt, bool (*callback)(char *, int)) {
   char *buf = malloc(bufsize);
 
   size_t buflen = 0;
-  buf[0] = '\0';
+  *buf = '\0';
 
   while (true) {
     editorSetStatusMessage(prompt, buf);
     editorRefreshScreen();
+    refreshPromptCursor();
 
     int c = editorReadKey();
 
@@ -64,6 +65,12 @@ char *editorPrompt(char *prompt, bool (*callback)(char *, int)) {
       E.colOffset = saved_colOff;
     }
   }
+}
+
+void refreshPromptCursor(void) {
+  char temp[32];
+  snprintf(temp, sizeof(temp), "\x1b[%d;%luH", E.rowOffset + E.screenRows + 2, strlen(E.statusmsg) + 1);
+  write(STDOUT_FILENO, temp, strlen(temp));
 }
 
 void editorMoveCursor(int key) {
