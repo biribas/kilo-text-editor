@@ -8,7 +8,6 @@ int main(int argc, char **argv) {
   enableRawMode();
   initEditor();
   initColors();
-  initHighlightDataBase();
 
   if (argc >= 2) {
     editorOpen(argv[1]);

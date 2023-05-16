@@ -72,7 +72,3 @@ void initColors(void) {
   theme.endStatement = (color_t){147, 153, 178, false};
 }
 
-void initHighlightDataBase(void) {
-
-}
-
