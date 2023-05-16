@@ -48,7 +48,7 @@
 
   typedef struct {
     color_t background;
-    color_t text;
+    color_t lightText;
     color_t darkText;
     color_t keyword;
     color_t datatype;

@@ -57,7 +57,7 @@ void initEditor(void) {
 
 void initColors(void) {
   theme.background = (color_t){30, 30, 46, true};
-  theme.text = (color_t){205, 214, 244, false};
+  theme.lightText = (color_t){205, 214, 244, false};
   theme.darkText = (color_t){17, 17, 17, false};
   theme.keyword = (color_t){203, 166, 247, false};
   theme.datatype = (color_t){249, 226, 175, false};

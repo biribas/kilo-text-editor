@@ -165,7 +165,7 @@ bool highlightSymbols(editorLine *line, highlightController *hc, char **symbols,
 
 void editorUpdateHighlight(editorLine *line) {
   line->highlight = realloc(line->highlight, sizeof(color_t) * line->renderLength);
-  colorLine(line, 0, theme.text, line->renderLength);
+  colorLine(line, 0, theme.lightText, line->renderLength);
 
   if (E.syntax == NULL) return;
 
@@ -176,7 +176,7 @@ void editorUpdateHighlight(editorLine *line) {
   hc.idx = 0;
 
   while (hc.idx < line->renderLength) {
-    hc.prevHL = (hc.idx > 0) ? line->highlight[hc.idx - 1] : theme.text;
+    hc.prevHL = (hc.idx > 0) ? line->highlight[hc.idx - 1] : theme.lightText;
 
     bool wasHighlighted = (
       highlightSinglelineComments(line, &hc) ||
