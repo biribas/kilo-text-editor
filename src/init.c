@@ -65,7 +65,7 @@ void initColors(void) {
   theme.number = (color_t){250, 179, 135, false};
   theme.string = (color_t){166, 227, 161, false};
   theme.comment = (color_t){108, 112, 134, false};
-  theme.match = (color_t){137, 180, 250, true};
+  theme.match = (color_t){62, 87, 103, true};
   theme.currentMatch = (color_t){137, 220, 235, true};
   theme.operators = (color_t){116, 199, 236, false};
   theme.brackets = (color_t){147, 153, 178, false};
