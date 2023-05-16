@@ -128,7 +128,7 @@ void editorProcessKeypress(void) {
     case '\r':
       editorInsertNewLine();
       break;
-    
+
     case CTRL_KEY('q'):
       quit_times--;
       if (E.dirty && quit_times > 0) {
@@ -194,7 +194,7 @@ void editorProcessKeypress(void) {
       break;
     
     default:
-      if (!iscntrl(c))
+      if (c == '\t' || !iscntrl(c))
         editorInsertChar(c);
       break;
   }
