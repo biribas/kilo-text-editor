@@ -48,7 +48,7 @@ void editorHighlightOutput(buffer *buff, color_t color) {
 }
 
 void editorDefaultHighlight(buffer *buff) {
-  editorHighlightOutput(buff, theme.lightText);
+  editorHighlightOutput(buff, theme.text);
   editorHighlightOutput(buff, theme.background);
 }
 
@@ -82,7 +82,7 @@ void editorDrawLines(buffer *buff) {
       }
     }
     else {
-      color_t prevColor = theme.lightText;
+      color_t prevColor = theme.text;
       editorDefaultHighlight(buff);
 
       char *content = &E.lines[filerow].renderContent[E.colOffset];
@@ -93,7 +93,11 @@ void editorDrawLines(buffer *buff) {
         color_t curColor = highlight[j];
 
         if (!colorcmp(curColor, prevColor)) {
-          editorHighlightOutput(buff, curColor.isBackground ? theme.darkText : theme.background);
+          if (curColor.isBackground)
+            editorHighlightOutput(buff, curColor.isDark ? theme.lightText : theme.darkText);
+          else if (prevColor.isBackground)
+            editorHighlightOutput(buff, theme.background);
+
           editorHighlightOutput(buff, curColor);
           prevColor = curColor;
         }
