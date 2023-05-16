@@ -2,14 +2,6 @@
 #include <init.h>
 #include <tools.h>
 
-bool isSeparator(int c) {
-  return isspace(c) || c == '\0' || strchr("()[]{}<>,.+-/*=~%|&!;", c) != NULL;
-}
-
-bool colorcmp(color_t x, color_t y) {
-  return x.r == y.r && x.g == y.g && x.b == y.b;
-}
-
 void colorLine(editorLine *line, int start, color_t c, int len) {
   for (int i = start, n = start + len; i < n; i++) {
     line->highlight[i] = c;
