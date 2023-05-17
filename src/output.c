@@ -52,57 +52,68 @@ void editorDrawLines(buffer *buff) {
     int filerow = i + E.rowOffset;
     color_t backgroundColor = filerow == E.cursorY ? theme.activeLine : theme.background;
 
-    editorHighlightOutput(buff, theme.text);
-    editorHighlightOutput(buff, theme.background);
-
-    if (filerow >= E.numlines) {
-      if (E.numlines == 0 && i == E.screenRows / 3) {
-        char welcome[80];
-        int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
-
-        length = min(length, E.screenCols);
-
-        int padding = (E.screenCols - length) / 2;
-
-        while (padding--) {
-          appendBuffer(buff, " ", 1);
-        }
-
-        appendBuffer(buff, welcome, length);
-      }
-    }
-    else {
+    setDefaultColors(buff);
+    
+    if ((E.numlines == 0 && i == 0) || filerow < E.numlines) {
       printLineNumber(filerow, buff);
       editorHighlightOutput(buff, backgroundColor);
-
-      color_t prevColor = theme.text;
-
-      char *content = &E.lines[filerow].renderContent[E.colOffset];
-      int length = clamp(0, E.lines[filerow].renderLength - E.colOffset, E.screenCols);
-      color_t *highlight = &E.lines[filerow].highlight[E.colOffset];
-
-      for (int j = 0; j < length; j++) {
-        color_t curColor = highlight[j];
-
-        if (!colorcmp(curColor, prevColor)) {
-          if (curColor.isBackground)
-            editorHighlightOutput(buff, curColor.isDark ? theme.lightText : theme.darkText);
-          else if (prevColor.isBackground)
-            editorHighlightOutput(buff, backgroundColor);
-
-          editorHighlightOutput(buff, curColor);
-          prevColor = curColor;
-        }
-        appendBuffer(buff, &content[j], 1);
-      }
     }
+
+    if (E.numlines == 0 && i == E.screenRows / 3) {
+      printMainScreen(buff);
+    }
+    else if (filerow < E.numlines) {
+      printTextLine(filerow, backgroundColor, buff);
+    }
+
     appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
-    appendBuffer(buff, "\r\n", 2);
+    appendBuffer(buff, "\r\n", 2);   // Carriage Return + Line Feed
   }
 
-  // Reset default colors
+  setDefaultColors(buff);
+}
+
+void setDefaultColors(buffer *buff) {
   editorHighlightOutput(buff, theme.text);
   editorHighlightOutput(buff, theme.background);
+}
+
+void printTextLine(int row, color_t background, buffer *buff) {
+  color_t prevColor = theme.text;
+
+  char *content = &E.lines[row].renderContent[E.colOffset];
+  int length = clamp(0, E.lines[row].renderLength - E.colOffset, E.screenCols);
+  color_t *highlight = &E.lines[row].highlight[E.colOffset];
+
+  for (int j = 0; j < length; j++) {
+    color_t curColor = highlight[j];
+
+    if (!colorcmp(curColor, prevColor)) {
+      if (curColor.isBackground)
+        editorHighlightOutput(buff, curColor.isDark ? theme.lightText : theme.darkText);
+      else if (prevColor.isBackground)
+        editorHighlightOutput(buff, background);
+
+      editorHighlightOutput(buff, curColor);
+      prevColor = curColor;
+    }
+    appendBuffer(buff, &content[j], 1);
+  }
+}
+
+void printMainScreen(buffer *buff) {
+  char welcome[80];
+  int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
+
+  length = min(length, E.screenCols);
+
+  int padding = (E.screenCols - length) / 2;
+
+  while (padding--) {
+    appendBuffer(buff, " ", 1);
+  }
+
+  appendBuffer(buff, welcome, length);
 }
 
 void printLineNumber(int row, buffer *buff) {
