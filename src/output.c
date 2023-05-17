@@ -47,18 +47,15 @@ void editorHighlightOutput(buffer *buff, color_t color) {
   appendBuffer(buff, ansi, len);
 }
 
-void editorDefaultHighlight(buffer *buff) {
-  editorHighlightOutput(buff, theme.text);
-  editorHighlightOutput(buff, theme.background);
-}
-
 void editorDrawLines(buffer *buff) {
   for (int i = 0; i < E.screenRows; i++) {
     int filerow = i + E.rowOffset;
+    color_t backgroundColor = filerow == E.cursorY ? theme.activeLine : theme.background;
+
+    editorHighlightOutput(buff, theme.text);
+    editorHighlightOutput(buff, backgroundColor);
 
     if (filerow >= E.numlines) {
-      editorDefaultHighlight(buff);
-
       if (E.numlines == 0 && i == E.screenRows / 3) {
         char welcome[80];
         int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
@@ -72,8 +69,9 @@ void editorDrawLines(buffer *buff) {
           padding--;
         }
 
-        while (padding--)
+        while (padding--) {
           appendBuffer(buff, " ", 1);
+        }
 
         appendBuffer(buff, welcome, length);
       }
@@ -83,7 +81,6 @@ void editorDrawLines(buffer *buff) {
     }
     else {
       color_t prevColor = theme.text;
-      editorDefaultHighlight(buff);
 
       char *content = &E.lines[filerow].renderContent[E.colOffset];
       int length = clamp(0, E.lines[filerow].renderLength - E.colOffset, E.screenCols);
@@ -96,18 +93,21 @@ void editorDrawLines(buffer *buff) {
           if (curColor.isBackground)
             editorHighlightOutput(buff, curColor.isDark ? theme.lightText : theme.darkText);
           else if (prevColor.isBackground)
-            editorHighlightOutput(buff, theme.background);
+            editorHighlightOutput(buff, backgroundColor);
 
           editorHighlightOutput(buff, curColor);
           prevColor = curColor;
         }
         appendBuffer(buff, &content[j], 1);
       }
-      editorDefaultHighlight(buff);
     }
     appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
     appendBuffer(buff, "\r\n", 2);
   }
+
+  // Reset default colors
+  editorHighlightOutput(buff, theme.text);
+  editorHighlightOutput(buff, theme.background);
 }
 
 void editorDrawStatusBar(buffer *buff) {

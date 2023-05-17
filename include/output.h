@@ -6,7 +6,6 @@
   void editorScrollY(void);
   void editorDrawLines(buffer *);
   void editorHighlightOutput(buffer *buff, color_t color);
-  void editorDefaultHighlight(buffer *buff);
   void editorDrawStatusBar(buffer *);
   void editorDrawMessageBar(buffer *);
   void editorRefreshScreen(void);

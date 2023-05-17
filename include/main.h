@@ -50,6 +50,7 @@
 
   typedef struct {
     color_t background;
+    color_t activeLine;
     color_t lightText;
     color_t darkText;
     color_t text;

@@ -60,6 +60,7 @@ void initEditor(void) {
 
 void initColors(void) {
   theme.background = COLOR_RGB(30, 30, 46, true);
+  theme.activeLine = COLOR_RGB(42, 43, 60, true);
   theme.lightText = COLOR_RGB(205, 214, 244, false);
   theme.darkText = COLOR_RGB(17, 17, 17, false);
   theme.text = theme.background.isDark ? theme.lightText : theme.darkText;
