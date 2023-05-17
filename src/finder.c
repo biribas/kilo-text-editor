@@ -97,7 +97,7 @@ bool editorFindCallback(char *query, int key) {
         match = E.lines[current].renderContent - 1;
       }
       else {
-        colorLine(line, match - line->renderContent, theme.match, strlen(query));
+        colorLine(line, match - line->renderContent, theme.match.unselected, strlen(query));
       }
     }
   }
@@ -106,7 +106,7 @@ bool editorFindCallback(char *query, int key) {
     current = lastMatchIndex;
     match = lastMatch;
     editorLine *line = &E.lines[current];
-    colorLine(line, match - line->renderContent, theme.currentMatch, strlen(query));
+    colorLine(line, match - line->renderContent, theme.match.selected, strlen(query));
   }
 
   return found;

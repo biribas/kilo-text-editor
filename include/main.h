@@ -51,20 +51,24 @@
   typedef struct {
     color_t background;
     color_t activeLine;
-    color_t lightText;
-    color_t darkText;
-    color_t text;
     color_t keyword;
     color_t datatype;
     color_t preprocessor;
     color_t number;
     color_t string;
     color_t comment;
-    color_t match;
-    color_t currentMatch;
     color_t operators;
     color_t brackets;
     color_t endStatement;
+    struct {
+      color_t unselected;
+      color_t selected;
+    } match;
+    struct {
+      color_t light;
+      color_t dark;
+      color_t standard;
+    } text;
     struct {
       color_t number; 
       color_t activeNumber;

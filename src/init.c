@@ -48,7 +48,7 @@ void initEditor(void) {
   E.sidebarWidth = 6;
   E.lines = NULL;
   E.dirty = false;
-  E.emptyfile = false;
+  E.splashScreen = false;
   E.filename = NULL;
   E.statusmsg[0] = '\0';
   E.syntax = NULL;
@@ -62,21 +62,22 @@ void initEditor(void) {
 
 void initColors(void) {
   theme.background = COLOR_RGB(30, 30, 46, true);
-  theme.activeLine = COLOR_RGB(42, 43, 60, true);
-  theme.lightText = COLOR_RGB(205, 214, 244, false);
-  theme.darkText = COLOR_RGB(17, 17, 17, false);
-  theme.text = theme.background.isDark ? theme.lightText : theme.darkText;
   theme.keyword = COLOR_RGB(203, 166, 247, false);
+  theme.activeLine = COLOR_RGB(42, 43, 60, true);
   theme.datatype = COLOR_RGB(249, 226, 175, false);
   theme.preprocessor = COLOR_RGB(245, 194, 231, false);
   theme.number = COLOR_RGB(250, 179, 135, false);
   theme.string = COLOR_RGB(166, 227, 161, false);
   theme.comment = COLOR_RGB(108, 112, 134, false);
-  theme.match = COLOR_RGB(62, 87, 103, true);
-  theme.currentMatch = COLOR_RGB(137, 220, 235, true);
   theme.operators = COLOR_RGB(116, 199, 236, false);
   theme.brackets = COLOR_RGB(147, 153, 178, false);
   theme.endStatement = COLOR_RGB(147, 153, 178, false);
+
+  theme.match.unselected = COLOR_RGB(62, 87, 103, true);
+  theme.match.selected = COLOR_RGB(137, 220, 235, true);
+  theme.text.light = COLOR_RGB(205, 214, 244, false);
+  theme.text.dark = COLOR_RGB(17, 17, 17, false);
+  theme.text.standard = theme.background.isDark ? theme.text.light : theme.text.dark;
   theme.sidebar.number = COLOR_RGB(69, 71, 90, false);
   theme.sidebar.activeNumber = COLOR_RGB(180, 190, 254, false);
 }

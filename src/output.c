@@ -161,7 +161,7 @@ void editorHighlightOutput(buffer *buff, color_t color) {
 }
 
 void setDefaultColors(buffer *buff) {
-  editorHighlightOutput(buff, theme.text);
+  editorHighlightOutput(buff, theme.text.standard);
   editorHighlightOutput(buff, theme.background);
 }
 
@@ -184,11 +184,11 @@ void printLineNumber(int row, buffer *buff) {
   }
 
   appendBuffer(buff, sidebarLine, E.sidebarWidth);
-  editorHighlightOutput(buff, theme.text);
+  editorHighlightOutput(buff, theme.text.standard);
 }
 
 void printTextLine(int row, color_t background, buffer *buff) {
-  color_t prevColor = theme.text;
+  color_t prevColor = theme.text.standard;
 
   char *content = &E.lines[row].renderContent[E.colOffset];
   int length = clamp(0, E.lines[row].renderLength - E.colOffset, E.screenCols);
@@ -199,7 +199,7 @@ void printTextLine(int row, color_t background, buffer *buff) {
 
     if (!colorcmp(curColor, prevColor)) {
       if (curColor.isBackground)
-        editorHighlightOutput(buff, curColor.isDark ? theme.lightText : theme.darkText);
+        editorHighlightOutput(buff, curColor.isDark ? theme.text.light : theme.text.dark);
       else if (prevColor.isBackground)
         editorHighlightOutput(buff, background);
 
