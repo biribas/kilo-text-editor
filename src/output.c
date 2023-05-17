@@ -53,7 +53,7 @@ void editorDrawLines(buffer *buff) {
     color_t backgroundColor = filerow == E.cursorY ? theme.activeLine : theme.background;
 
     editorHighlightOutput(buff, theme.text);
-    editorHighlightOutput(buff, backgroundColor);
+    editorHighlightOutput(buff, theme.background);
 
     if (filerow >= E.numlines) {
       if (E.numlines == 0 && i == E.screenRows / 3) {
@@ -64,22 +64,17 @@ void editorDrawLines(buffer *buff) {
 
         int padding = (E.screenCols - length) / 2;
 
-        if (padding != 0) {
-          appendBuffer(buff, "~", 1);
-          padding--;
-        }
-
         while (padding--) {
           appendBuffer(buff, " ", 1);
         }
 
         appendBuffer(buff, welcome, length);
       }
-      else if (filerow != 0) { 
-        appendBuffer(buff, "~", 1);
-      }
     }
     else {
+      printLineNumber(filerow, buff);
+      editorHighlightOutput(buff, backgroundColor);
+
       color_t prevColor = theme.text;
 
       char *content = &E.lines[filerow].renderContent[E.colOffset];
@@ -108,6 +103,39 @@ void editorDrawLines(buffer *buff) {
   // Reset default colors
   editorHighlightOutput(buff, theme.text);
   editorHighlightOutput(buff, theme.background);
+}
+
+void printLineNumber(int row, buffer *buff) {
+  char sidebarLine[E.sidebarWidth];
+  memset(sidebarLine, ' ', E.sidebarWidth);
+
+  char num[E.sidebarWidth];
+  int n;
+
+  if (row == E.cursorY) {
+    editorHighlightOutput(buff, theme.sidebar.activeNumber);
+    n = snprintf(num, E.sidebarWidth, "%d", row + 1);
+    memcpy(sidebarLine + 1, num, n);
+  }
+  else {
+    editorHighlightOutput(buff, theme.sidebar.number);
+    n = snprintf(num, E.sidebarWidth, "%d", abs(row - E.cursorY));
+    memcpy(sidebarLine + E.sidebarWidth - n - 2, num, n);
+  }
+
+  appendBuffer(buff, sidebarLine, E.sidebarWidth);
+  editorHighlightOutput(buff, theme.text);
+}
+
+void adjustSidebarWidth(void) {
+  int num = E.numlines;
+  int count = 0;
+  do {
+    num /= 10;
+    count++; 
+  } while (num != 0);
+
+  E.sidebarWidth = count >= 4 ? count + 3 : 6;
 }
 
 void editorDrawStatusBar(buffer *buff) {
@@ -177,7 +205,7 @@ void editorRefreshScreen(void) {
   editorDrawMessageBar(&buff);
 
   char temp[32];
-  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.rCursorX - E.colOffset) + 1);
+  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.rCursorX - E.colOffset + E.sidebarWidth) + 1);
   appendBuffer(&buff, temp, strlen(temp));
 
   appendBuffer(&buff, "\x1b[?25h", 6); // Make cursor visible

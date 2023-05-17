@@ -45,6 +45,7 @@ void initEditor(void) {
   E.rowOffset = 0;
   E.colOffset = 0;
   E.numlines = 0;
+  E.sidebarWidth = 6;
   E.lines = NULL;
   E.dirty = false;
   E.filename = NULL;
@@ -75,5 +76,7 @@ void initColors(void) {
   theme.operators = COLOR_RGB(116, 199, 236, false);
   theme.brackets = COLOR_RGB(147, 153, 178, false);
   theme.endStatement = COLOR_RGB(147, 153, 178, false);
+  theme.sidebar.number = COLOR_RGB(69, 71, 90, false);
+  theme.sidebar.activeNumber = COLOR_RGB(180, 190, 254, false);
 }
 

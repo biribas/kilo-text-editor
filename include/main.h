@@ -65,6 +65,10 @@
     color_t operators;
     color_t brackets;
     color_t endStatement;
+    struct {
+      color_t number; 
+      color_t activeNumber;
+    } sidebar;
   } colors;
 
   struct comment {
@@ -119,6 +123,7 @@
     int screenRows, screenCols;
     int rowOffset, colOffset;
     int numlines;
+    int sidebarWidth;
     bool dirty;
     editorLine *lines;
     char *filename;

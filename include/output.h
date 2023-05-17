@@ -4,8 +4,10 @@
 #define OUTPUT_H_INCLUDED
   void editorScrollX(void);
   void editorScrollY(void);
-  void editorDrawLines(buffer *);
   void editorHighlightOutput(buffer *buff, color_t color);
+  void editorDrawLines(buffer *);
+  void printLineNumber(int row, buffer *buff);
+  void adjustSidebarWidth(void);
   void editorDrawStatusBar(buffer *);
   void editorDrawMessageBar(buffer *);
   void editorRefreshScreen(void);

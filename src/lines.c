@@ -1,5 +1,6 @@
 #include <highlight.h>
 #include <lines.h>
+#include <output.h>
 
 int editorLineCxToRx(editorLine *line, int cursorX) {
   int rx = 0;
@@ -81,6 +82,8 @@ void editorInsertLine(int at, char *line, size_t length) {
 
   editorUpdateLine(&E.lines[at]);
   E.numlines++;
+
+  adjustSidebarWidth();
 }
 
 void editorFreeLine(editorLine *line) {
@@ -100,6 +103,8 @@ void editorDeleteLine(int at) {
     E.lines[i].index--;
 
   E.numlines--;
+
+  adjustSidebarWidth();
 }
 
 void editorLineInsertChar(editorLine *line, int at, int c) {
