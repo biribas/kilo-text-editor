@@ -28,6 +28,12 @@ char *editorLinesToString(int *buflen) {
 }
 
 void editorOpen(char *filename) {
+  if (filename == NULL) {
+    editorInsertLine(E.numlines, "", 0);
+    E.splashScreen = true;
+    return;
+  }
+
   E.filename = strdup(filename);
 
   editorSelectSyntaxHighlight();

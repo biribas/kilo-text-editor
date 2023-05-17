@@ -2,11 +2,7 @@
 #include <lines.h>
 
 void editorInsertChar(int c) {
-  if (E.cursorY == E.numlines)
-    editorInsertLine(E.numlines, "", 0);
-
   editorLineInsertChar(&E.lines[E.cursorY], E.cursorX, c);
-
   E.cursorX++;
   E.highestLastX = E.cursorX;
   E.dirty = true;

@@ -48,6 +48,7 @@ void initEditor(void) {
   E.sidebarWidth = 6;
   E.lines = NULL;
   E.dirty = false;
+  E.emptyfile = false;
   E.filename = NULL;
   E.statusmsg[0] = '\0';
   E.syntax = NULL;

@@ -65,16 +65,14 @@ void editorDrawLines(buffer *buff) {
 
     setDefaultColors(buff);
     
-    if ((E.numlines == 0 && i == 0) || filerow < E.numlines) {
+    if (filerow < E.numlines) {
       printLineNumber(filerow, buff);
       editorHighlightOutput(buff, backgroundColor);
+      printTextLine(filerow, backgroundColor, buff);
     }
 
-    if (E.numlines == 0 && i == E.screenRows / 3) {
+    if (E.splashScreen && i == E.screenRows / 3) {
       printMainScreen(buff);
-    }
-    else if (filerow < E.numlines) {
-      printTextLine(filerow, backgroundColor, buff);
     }
 
     appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
@@ -223,8 +221,9 @@ void printMainScreen(buffer *buff) {
   while (padding--) {
     appendBuffer(buff, " ", 1);
   }
-
   appendBuffer(buff, welcome, length);
+
+  E.splashScreen = false;
 }
 
 void adjustSidebarWidth(void) {

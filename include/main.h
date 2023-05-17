@@ -125,6 +125,7 @@
     int numlines;
     int sidebarWidth;
     bool dirty;
+    bool splashScreen;
     editorLine *lines;
     char *filename;
     char statusmsg[80];
