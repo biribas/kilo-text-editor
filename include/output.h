@@ -14,5 +14,6 @@
   void editorDrawStatusBar(buffer *);
   void editorDrawMessageBar(buffer *);
   void editorRefreshScreen(void);
+  void editorSetCursorPosition(buffer *);
   void editorSetStatusMessage(const char *format, ...);
 #endif

@@ -214,15 +214,22 @@ void editorRefreshScreen(void) {
   editorDrawLines(&buff);
   editorDrawStatusBar(&buff);
   editorDrawMessageBar(&buff);
-
-  char temp[32];
-  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", (E.cursorY - E.rowOffset) + 1, (E.rCursorX - E.colOffset + E.sidebarWidth) + 1);
-  appendBuffer(&buff, temp, strlen(temp));
+  editorSetCursorPosition(&buff);
 
   appendBuffer(&buff, "\x1b[?25h", 6); // Make cursor visible
 
   write(STDOUT_FILENO, buff.content, buff.length);
   freeBuffer(&buff);
+}
+
+void editorSetCursorPosition(buffer *buff) {
+  char temp[32];
+  
+  int cx = (E.rCursorX - E.colOffset + E.sidebarWidth) + 1;
+  int cy = (E.cursorY - E.rowOffset) + 1;
+
+  snprintf(temp, sizeof(temp), "\x1b[%d;%dH", cy, cx);
+  appendBuffer(buff, temp, strlen(temp));
 }
 
 void editorSetStatusMessage(const char *format, ...) {
