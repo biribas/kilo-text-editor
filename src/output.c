@@ -88,6 +88,21 @@ void editorDrawLines(buffer *buff) {
 }
 
 void editorDrawStatusBar(buffer *buff) {
+  color_t modeColor = theme.mode.normal;
+  char mode[80];
+  int modeLen = sprintf(mode, " NORMAL ");
+
+  if (E.mode == INSERT) {
+    modeColor = theme.mode.insert;
+    modeLen = sprintf(mode, " INSERT ");
+  }
+
+  appendBuffer(buff, "\x1b[1m", 4);
+  editorHighlightOutput(buff, modeColor);
+  editorHighlightOutput(buff, theme.mode.text);
+  appendBuffer(buff, mode, modeLen);
+  appendBuffer(buff, "\x1b[22m", 5);
+
   const char *filename = E.filename ? E.filename : "[No name]";
   const char *modified = E.dirty ? "*" : "";
 
@@ -131,11 +146,11 @@ void editorDrawStatusBar(buffer *buff) {
   int posLen = sprintf(position, " %s  %s ", cursorPosition, percentage);
 
   editorHighlightOutput(buff, theme.statusBar);
-  for (; bufferLen < E.screenCols; bufferLen++) {
-    if (E.screenCols - bufferLen == posLen) {
+  for (int n = bufferLen + modeLen; n < E.screenCols; n++) {
+    if (E.screenCols - n == posLen) {
       appendBuffer(buff, "\x1b[1m", 4);
       editorHighlightOutput(buff, theme.mode.text);
-      editorHighlightOutput(buff, theme.mode.insert);
+      editorHighlightOutput(buff, modeColor);
       appendBuffer(buff, position, posLen);
       appendBuffer(buff, "\x1b[22m", 5);
       break;

@@ -39,6 +39,11 @@
     PAGE_DOWN
   };
 
+  enum editorModes {
+    NORMAL,
+    INSERT
+  };
+
   typedef struct {
     unsigned char r;
     unsigned char g;
@@ -62,6 +67,7 @@
     color_t endStatement;
     struct {
       color_t text;
+      color_t normal;
       color_t insert;
     } mode;
     struct {
@@ -138,6 +144,7 @@
     int rowOffset, colOffset;
     int numlines;
     int sidebarWidth;
+    int mode;
     bool dirty;
     bool splashScreen;
     bool isPromptOpen;

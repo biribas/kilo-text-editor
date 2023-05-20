@@ -47,6 +47,7 @@ void initEditor(void) {
   E.numlines = 0;
   E.sidebarWidth = MIN_SIDEBAR_WIDTH;
   E.lines = NULL;
+  E.mode = NORMAL;
   E.dirty = false;
   E.splashScreen = false;
   E.isPromptOpen = false;
@@ -75,6 +76,7 @@ void initColors(void) {
   theme.endStatement = COLOR_RGB(147, 153, 178, false);
 
   theme.mode.text = COLOR_RGB(24, 24, 37, false); 
+  theme.mode.normal = COLOR_RGB(137, 180, 250, true);
   theme.mode.insert = COLOR_RGB(166, 227, 161, true);
   theme.buffer.active.background = COLOR_RGB(69, 71, 90, true);
   theme.buffer.active.text = COLOR_RGB(137, 180, 250, false);
