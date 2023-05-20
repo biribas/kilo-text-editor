@@ -9,7 +9,6 @@ int main(int argc, char **argv) {
   initEditor();
   initColors();
 
-  editorSetStatusMessage(HELP_MESSAGE);
   editorOpen(argc >= 2 ? argv[1] : NULL);
 
   while (true) {

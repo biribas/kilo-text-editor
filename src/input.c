@@ -38,15 +38,16 @@ char *editorPrompt(char *prompt, bool (*callback)(char *, int)) {
         E.rowOffset = saved_rowOff;
         E.colOffset = saved_colOff;
       }
-
-      editorSetStatusMessage("");
       free(buf);
+
+      E.isPromptOpen = false;
       return NULL;
     }
     else if (c == '\r') {
       if (buflen == 0) continue;
       if (callback) callback(buf, c);
-      editorSetStatusMessage("");
+
+      E.isPromptOpen = false;
       return buf;
     }
     else if (!iscntrl(c) && c < 128) {
@@ -120,7 +121,7 @@ void editorMoveCursor(int key) {
 }
 
 void editorProcessKeypress(void) {
-  static int quit_times = 2;
+  static int quit_times = QUIT_TIMES;
 
   int c = editorReadKey();
 
@@ -200,7 +201,7 @@ void editorProcessKeypress(void) {
   }
 
   if (quit_times < QUIT_TIMES) {
-    editorSetStatusMessage("");
+    E.isPromptOpen = false;
     quit_times = QUIT_TIMES;
   }
 }

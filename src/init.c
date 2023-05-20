@@ -45,25 +45,26 @@ void initEditor(void) {
   E.rowOffset = 0;
   E.colOffset = 0;
   E.numlines = 0;
-  E.sidebarWidth = 6;
+  E.sidebarWidth = MIN_SIDEBAR_WIDTH;
   E.lines = NULL;
   E.dirty = false;
   E.splashScreen = false;
+  E.isPromptOpen = false;
   E.filename = NULL;
   E.statusmsg[0] = '\0';
   E.syntax = NULL;
 
-  E.statusmsg_time = 0;
   if (!getWindowSize(&E.screenRows, &E.screenCols))
     die("getWindowSize");
 
-  E.screenRows -= 2;
+  E.screenRows -= 1;
 }
 
 void initColors(void) {
   theme.background = COLOR_RGB(30, 30, 46, true);
-  theme.keyword = COLOR_RGB(203, 166, 247, false);
   theme.activeLine = COLOR_RGB(42, 43, 60, true);
+  theme.statusBar = COLOR_RGB(24, 24, 37, true);
+  theme.keyword = COLOR_RGB(203, 166, 247, false);
   theme.datatype = COLOR_RGB(249, 226, 175, false);
   theme.preprocessor = COLOR_RGB(245, 194, 231, false);
   theme.number = COLOR_RGB(250, 179, 135, false);
@@ -73,6 +74,10 @@ void initColors(void) {
   theme.brackets = COLOR_RGB(147, 153, 178, false);
   theme.endStatement = COLOR_RGB(147, 153, 178, false);
 
+  theme.mode.text = COLOR_RGB(24, 24, 37, false); 
+  theme.mode.insert = COLOR_RGB(166, 227, 161, true);
+  theme.buffer.active.background = COLOR_RGB(69, 71, 90, true);
+  theme.buffer.active.text = COLOR_RGB(137, 180, 250, false);
   theme.match.unselected = COLOR_RGB(62, 87, 103, true);
   theme.match.selected = COLOR_RGB(137, 220, 235, true);
   theme.text.light = COLOR_RGB(205, 214, 244, false);

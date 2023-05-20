@@ -2,6 +2,8 @@
 #include <highlight.h>
 #include <lines.h>
 #include <output.h>
+#include <stdio.h>
+#include <string.h>
 #include <tools.h>
 
 void editorRefreshScreen(void) {
@@ -16,8 +18,11 @@ void editorRefreshScreen(void) {
   appendBuffer(&buff, "\x1b[H", 3); // Moves cursor to home position (0, 0)
 
   editorDrawLines(&buff);
-  editorDrawStatusBar(&buff);
-  editorDrawMessageBar(&buff);
+  if (E.isPromptOpen)
+    editorDrawPromptBar(&buff);
+  else
+    editorDrawStatusBar(&buff);
+
   editorSetCursorPosition(&buff);
 
   appendBuffer(&buff, "\x1b[?25h", 6); // Make cursor visible
@@ -83,50 +88,76 @@ void editorDrawLines(buffer *buff) {
 }
 
 void editorDrawStatusBar(buffer *buff) {
-  appendBuffer(buff, "\x1b[7m", 4); // Inverted colors
-  char info[80], position[80];
-
   const char *filename = E.filename ? E.filename : "[No name]";
-  const char *modified = E.dirty ? "(modified)" : "";
-  int infoLen = snprintf(info, sizeof(info), " %.20s %s", filename, modified);
+  const char *modified = E.dirty ? "*" : "";
 
-  char percent[80];
+  char bufferInfo[80];
+  int bufferLen = snprintf(bufferInfo, sizeof(bufferInfo), " %.20s %s ", filename, modified);
+  bufferLen = min(bufferLen, E.screenCols);
+  editorHighlightOutput(buff, theme.buffer.active.background);
+  editorHighlightOutput(buff, theme.buffer.active.text);
+  appendBuffer(buff, bufferInfo, bufferLen);
+
+  char percentage[4];
   if (E.numlines == 0 || E.cursorY == 0) {
-    sprintf(percent, "Top");
+    sprintf(percentage, "Top");
   }
   else if (E.cursorY >= E.numlines - 1) {
-    sprintf(percent, "Bot");
+    sprintf(percentage, "Bot");
   }
   else {
-    sprintf(percent, "%d%%", 100 * (E.cursorY + 1) / E.numlines);
+    int num = 100 * (E.cursorY + 1) / E.numlines;
+    if (num < 10)
+      sprintf(percentage, " %d%%", num);
+    else
+      sprintf(percentage, "%d%%", num);
   }
 
-  int posLen = snprintf(position, sizeof(position), " %d:%d   %s ", E.cursorY + 1, E.rCursorX + 1, percent);
-  infoLen = min(infoLen, E.screenCols);
+  char cx[80], cy[80];
+  int cxLen = sprintf(cx, "%d", E.cursorX + 1);
+  int cyLen = sprintf(cy, "%d", E.cursorY + 1);
 
-  appendBuffer(buff, info, infoLen);
+  int cursorlen = max(6, cxLen + cyLen + 1);
+  char cursorPosition[cursorlen];
+  memset(cursorPosition, ' ', cursorlen);
 
-  for (; infoLen < E.screenCols; infoLen++) {
-    if (E.screenCols - infoLen == posLen) {
+  int yOffset = max(0, 3 - cyLen);
+  int xOffset = yOffset + cyLen + 1;
+  memcpy(cursorPosition + yOffset, cy, cyLen);
+  cursorPosition[xOffset - 1] = ':';
+  memcpy(cursorPosition + xOffset, cx, cxLen);
+
+  char position[80];
+  int posLen = sprintf(position, " %s  %s ", cursorPosition, percentage);
+
+  editorHighlightOutput(buff, theme.statusBar);
+  for (; bufferLen < E.screenCols; bufferLen++) {
+    if (E.screenCols - bufferLen == posLen) {
+      appendBuffer(buff, "\x1b[1m", 4);
+      editorHighlightOutput(buff, theme.mode.text);
+      editorHighlightOutput(buff, theme.mode.insert);
       appendBuffer(buff, position, posLen);
+      appendBuffer(buff, "\x1b[22m", 5);
       break;
     }
     appendBuffer(buff, " ", 1);
   }
 
-  appendBuffer(buff, "\x1b[m", 3); // Reset normal color
-  appendBuffer(buff, "\r\n", 2);
+  appendBuffer(buff, "\x1b[0m", 4); // Reset style and colors
 }
 
-void editorDrawMessageBar(buffer *buff) {
+void editorDrawPromptBar(buffer *buff) {
   editorHighlightOutput(buff, theme.background);
+  editorHighlightOutput(buff, theme.text.standard);
   appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
 
   int len = strlen(E.statusmsg);
   len = min(len, E.screenCols);
 
-  if (len && time(NULL) - E.statusmsg_time < 5)
+  if (E.isPromptOpen) {
     appendBuffer(buff, E.statusmsg, len);
+    E.isPromptOpen = false;
+  }
 
   appendBuffer(buff, "\x1b[0m", 4); // Reset style and colors
 }
@@ -146,7 +177,7 @@ void editorSetStatusMessage(const char *format, ...) {
   va_start(args, format);
   vsnprintf(E.statusmsg, sizeof(E.statusmsg), format, args);
   va_end(args);
-  E.statusmsg_time = time(NULL);
+  E.isPromptOpen = true;
 }
 
 void editorHighlightOutput(buffer *buff, color_t color) {

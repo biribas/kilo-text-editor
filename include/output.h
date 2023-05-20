@@ -7,7 +7,7 @@
   void editorScrollY(void);
   void editorDrawLines(buffer *);
   void editorDrawStatusBar(buffer *);
-  void editorDrawMessageBar(buffer *);
+  void editorDrawPromptBar(buffer *);
   void editorSetCursorPosition(buffer *);
 
   void editorSetStatusMessage(const char *format, ...);

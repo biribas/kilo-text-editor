@@ -9,7 +9,6 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <termios.h>
-#include <time.h>
 #include <unistd.h>
 #include <stdbool.h>
 
@@ -21,7 +20,7 @@
   #define KILO_VERSION "0.0.1"
   #define TAB_SIZE 2
   #define QUIT_TIMES 2
-  #define HELP_MESSAGE "HELP: Ctrl-S = save | Ctrl-Q = quit | Ctrl-F = find"
+  #define MIN_SIDEBAR_WIDTH 6
 
   // Highlight flags
   #define HIGHLIGHT_NUMBERS (1 << 0)
@@ -51,6 +50,7 @@
   typedef struct {
     color_t background;
     color_t activeLine;
+    color_t statusBar;
     color_t keyword;
     color_t datatype;
     color_t preprocessor;
@@ -60,6 +60,16 @@
     color_t operators;
     color_t brackets;
     color_t endStatement;
+    struct {
+      color_t text;
+      color_t insert;
+    } mode;
+    struct {
+      struct {
+        color_t background;
+        color_t text;
+      } active;
+    } buffer;
     struct {
       color_t unselected;
       color_t selected;
@@ -130,10 +140,10 @@
     int sidebarWidth;
     bool dirty;
     bool splashScreen;
+    bool isPromptOpen;
     editorLine *lines;
     char *filename;
     char statusmsg[80];
-    time_t statusmsg_time;
     editorSyntax *syntax;
     struct termios original_state;
   } editorConfig;
