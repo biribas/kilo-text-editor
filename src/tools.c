@@ -4,6 +4,10 @@ int min(int a, int b) {
   return (a < b ? a : b);
 }
 
+int max(int a, int b) {
+  return (a > b ? a : b);
+}
+
 int clamp(int min, int value, int max) {
   return (value < min ? min : value > max ? max : value);
 }
@@ -24,3 +28,4 @@ bool isDark(int r, int g, int b) {
   float lightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return lightness < 0.55;
 }
+
