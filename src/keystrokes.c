@@ -3,6 +3,7 @@
 #include <finder.h>
 #include <input.h>
 #include <keystrokes.h>
+#include <lines.h>
 #include <output.h>
 #include <tools.h>
 
@@ -16,14 +17,7 @@ void handleNormalMode(int c) {
     // Insert at the beginning of the line
     case 'I': {
       E.mode = INSERT;
-      int tabs = 0;
-      for (int i = 0; i < E.lines[E.cursorY].length; i++) {
-        if (E.lines[E.cursorY].content[i] == '\t')
-          tabs++;
-        else
-          break;
-      }
-      E.cursorX = tabs;
+      E.cursorX = indentation(&E.lines[E.cursorY]);
       break;
     }
 
@@ -38,6 +32,19 @@ void handleNormalMode(int c) {
       E.mode = INSERT;
       E.cursorX = E.lines[E.cursorY].length;
       break;
+
+    case 'o': // Append a new line bellow the current line
+    case 'O': // Append a new line above the current line
+    {
+      int tabs = indentation(&E.lines[E.cursorY]);
+      char line[tabs];
+      memset(line, '\t', tabs);
+      editorInsertLine(c == 'o' ? ++E.cursorY : E.cursorY, line, tabs);
+
+      E.mode = INSERT;
+      E.cursorX = tabs;
+      break;
+    }
 
     // Arrow keys
     case 'h':
