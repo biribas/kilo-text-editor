@@ -5,6 +5,7 @@
 #include <keystrokes.h>
 #include <lines.h>
 #include <output.h>
+#include <terminal.h>
 #include <tools.h>
 
 void handleNormalMode(int c) {
@@ -45,6 +46,25 @@ void handleNormalMode(int c) {
       E.cursorX = tabs;
       break;
     }
+
+    case 'g': {
+      switch (editorReadKey()) {
+        // Go to the first line of the document
+        case 'g':
+          E.cursorY = 0;
+          break;
+
+        default:
+          break;
+      }
+
+      break;
+    }
+
+    // Go to the last line of the document
+    case 'G':
+      E.cursorY = E.numlines - 1;
+      break;
 
     // Arrow keys
     case 'h':
