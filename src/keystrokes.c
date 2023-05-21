@@ -66,6 +66,26 @@ void handleNormalMode(int c) {
       E.cursorY = E.numlines - 1;
       break;
 
+    // Jump to next paragraph
+    case '}':
+      for (int i = E.cursorY + 1; i < E.numlines; i++) {
+        if (E.lines[i].length != 0) continue;
+        E.cursorY = i;
+        return;
+      }
+      E.cursorY = E.numlines - 1;
+      break; 
+
+    // Jump to previus paragraph
+    case '{':
+      for (int i = E.cursorY - 1; i >= 0; i--) {
+        if (E.lines[i].length != 0) continue;
+        E.cursorY = i;
+        return;
+      }
+      E.cursorY = 0;
+      break;
+
     // Arrow keys
     case 'h':
     case BACKSPACE:
