@@ -9,8 +9,6 @@ void editorInsertChar(int c) {
 }
 
 void editorDeleteChar(void) {
-  if (E.numlines == 0) return;
-  if (E.cursorY == E.numlines) return;
   if (E.cursorX == 0 && E.cursorY == 0) return;
 
   editorLine *line = &E.lines[E.cursorY];
