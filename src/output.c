@@ -104,10 +104,10 @@ void editorDrawStatusBar(buffer *buff) {
   appendBuffer(buff, "\x1b[22m", 5);
 
   const char *filename = E.filename ? E.filename : "[No name]";
-  const char *modified = E.dirty ? "*" : "";
+  const char *modified = E.dirty ? " *" : "";
 
   char bufferInfo[80];
-  int bufferLen = snprintf(bufferInfo, sizeof(bufferInfo), " %.20s %s ", filename, modified);
+  int bufferLen = snprintf(bufferInfo, sizeof(bufferInfo), " %.20s%s ", filename, modified);
   bufferLen = min(bufferLen, E.screenCols);
   editorHighlightOutput(buff, theme.buffer.active.background);
   editorHighlightOutput(buff, theme.buffer.active.text);
