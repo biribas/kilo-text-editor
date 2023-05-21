@@ -68,10 +68,12 @@ void handleNormalMode(int c) {
       break;
 
     case HOME_KEY:
+    case '0':
       E.cursorX = 0;
       break;
 
     case END_KEY:
+    case '$':
       E.cursorX = E.lines[E.cursorY].length - 1;
       break;
   }
