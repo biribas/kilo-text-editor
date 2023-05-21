@@ -49,6 +49,12 @@ void handleNormalMode(int c) {
       break;
     }
 
+    case 'x': // delete character
+    case 's': // delete character and substitute text
+      if (c == 's') E.mode = INSERT;
+      editorLineDeleteChar(&E.lines[E.cursorY], E.cursorX);
+      break;
+
     case 'g': {
       switch (editorReadKey()) {
         // Go to the first line of the document
