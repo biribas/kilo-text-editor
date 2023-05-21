@@ -2,6 +2,15 @@
 #include <lines.h>
 #include <output.h>
 
+int indentation(editorLine *line) {
+  int tabs = 0;
+  while (tabs < line->length) {
+    if (line->content[tabs] != '\t') break;
+    tabs++;
+  }
+  return tabs;
+}
+
 int editorLineCxToRx(editorLine *line, int cursorX) {
   int rx = 0;
   for (int i = 0; i < cursorX; i++) {

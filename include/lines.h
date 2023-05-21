@@ -2,6 +2,7 @@
 
 #ifndef LINES_H_INCLUDED
 #define LINES_H_INCLUDED
+  int indentation(editorLine *line);
   int editorLineCxToRx(editorLine *line, int cursorX);
   int editorLineRxToCx(editorLine *line, int rCursorX);
   void editorUpdateLine(editorLine *);
