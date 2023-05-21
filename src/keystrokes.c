@@ -48,6 +48,7 @@ void handleNormalMode(int c) {
 
     // Arrow keys
     case 'h':
+    case BACKSPACE:
     case ARROW_LEFT:
       editorMoveCursor(ARROW_LEFT);
       break;
@@ -63,6 +64,7 @@ void handleNormalMode(int c) {
       break;
 
     case 'l':
+    case ' ':
     case ARROW_RIGHT:
       editorMoveCursor(ARROW_RIGHT);
       break;
