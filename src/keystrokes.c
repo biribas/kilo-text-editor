@@ -8,33 +8,64 @@
 
 void handleNormalMode(int c) {
   switch (c) {
+    // Insert before the cursor
     case 'i':
       E.mode = INSERT;
       break;
 
-    case 'a':
-      E.cursorX++;
+    // Insert at the beginning of the line
+    case 'I': {
       E.mode = INSERT;
+      int tabs = 0;
+      for (int i = 0; i < E.lines[E.cursorY].length; i++) {
+        if (E.lines[E.cursorY].content[i] == '\t')
+          tabs++;
+        else
+          break;
+      }
+      E.cursorX = tabs;
+      break;
+    }
+
+    // Insert after the cursor
+    case 'a':
+      E.mode = INSERT;
+      E.cursorX++;
       break;
 
+    // Insert at the end of the line
+    case 'A':
+      E.mode = INSERT;
+      E.cursorX = E.lines[E.cursorY].length;
+      break;
+
+    // Arrow keys
     case 'h':
+    case ARROW_LEFT:
       editorMoveCursor(ARROW_LEFT);
       break;
+
     case 'j':
+    case ARROW_DOWN:
       editorMoveCursor(ARROW_DOWN);
       break;
+
     case 'k':
+    case ARROW_UP:
       editorMoveCursor(ARROW_UP);
       break;
+
     case 'l':
+    case ARROW_RIGHT:
       editorMoveCursor(ARROW_RIGHT);
       break;
 
-    case ARROW_UP:
-    case ARROW_DOWN:
-    case ARROW_LEFT:
-    case ARROW_RIGHT:
-      editorMoveCursor(c);
+    case HOME_KEY:
+      E.cursorX = 0;
+      break;
+
+    case END_KEY:
+      E.cursorX = E.lines[E.cursorY].length - 1;
       break;
   }
 }
@@ -45,10 +76,9 @@ void handleInsertMode(int c) {
   switch (c) {
     case '\x1b':
     case CTRL_KEY('c'):
-      if (E.cursorX != 0) {
-        E.cursorX--;
-      }
       E.mode = NORMAL;
+      if (E.cursorX != 0)
+        E.cursorX--;
       break;
 
     case '\r':
@@ -79,8 +109,7 @@ void handleInsertMode(int c) {
       break;
 
     case END_KEY:
-      if (E.cursorY < E.numlines)
-        E.cursorX = E.lines[E.cursorY].length;
+      E.cursorX = E.lines[E.cursorY].length;
       break;
 
     case BACKSPACE:
