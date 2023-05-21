@@ -2,6 +2,7 @@
 #include <fileio.h>
 #include <finder.h>
 #include <input.h>
+#include <keystrokes.h>
 #include <output.h>
 #include <terminal.h>
 #include <tools.h>
@@ -75,7 +76,6 @@ void refreshPromptCursor(void) {
 }
 
 void editorMoveCursor(int key) {
-  if (E.numlines == 0) return;
   editorLine *currentLine = &E.lines[E.cursorY];
 
   switch (key) {
@@ -94,18 +94,20 @@ void editorMoveCursor(int key) {
       break;
 
     case ARROW_LEFT:
-      if (E.cursorX != 0) {
+      if (E.cursorX > 0) {
         E.cursorX--;
       }
       else if (E.cursorY > 0) {
         E.cursorY--;
-        E.cursorX = E.lines[E.cursorY].length;
+        int rightLimit = max(0, E.lines[E.cursorY].length + (E.mode == NORMAL ? -1 : 0));
+        E.cursorX = rightLimit;
       }
       E.highestLastX = E.cursorX;
       break;
 
-    case ARROW_RIGHT:
-      if (E.cursorX < currentLine->length) {
+    case ARROW_RIGHT: {
+      int cursorLimit = currentLine->length + (E.mode == NORMAL ? -1 : 0);
+      if (E.cursorX < cursorLimit) {
         E.cursorX++;
       }
       else if (E.cursorY + 1 < E.numlines) {
@@ -114,6 +116,7 @@ void editorMoveCursor(int key) {
       }
       E.highestLastX = E.cursorX;
       break;
+    }
   }
 
   currentLine = &E.lines[E.cursorY];
@@ -121,88 +124,13 @@ void editorMoveCursor(int key) {
 }
 
 void editorProcessKeypress(void) {
-  static int quit_times = QUIT_TIMES;
-
   int c = editorReadKey();
 
-  switch (c) {
-    case '\r':
-      editorInsertNewLine();
-      break;
-
-    case CTRL_KEY('q'):
-      quit_times--;
-      if (E.dirty && quit_times > 0) {
-        editorSetStatusMessage("File has unsaved changes. Press Ctrl-Q again to quit");
-        return;
-      }
-      write(STDOUT_FILENO, "\x1b[2J", 4); // Erase entire screen
-      write(STDOUT_FILENO, "\x1b[H", 3);  // Moves cursor to home position (0, 0)
-      exit(0);
-      break;
-
-    case CTRL_KEY('s'):
-      editorSave();
-      break;
-
-    case CTRL_KEY('f'):
-      editorFind();
-      break;
-
-    case HOME_KEY:
-      E.cursorX = 0;
-      break;
-
-    case END_KEY:
-      if (E.cursorY < E.numlines)
-        E.cursorX = E.lines[E.cursorY].length;
-      break;
-
-    case BACKSPACE:
-    case CTRL_KEY('h'):
-    case DEL_KEY: {
-      if (c == DEL_KEY) {
-        editorMoveCursor(ARROW_RIGHT);
-      }
-      editorDeleteChar();
-      break;
-    }
-
-    case PAGE_UP:
-    case PAGE_DOWN: {
-      if (E.numlines == 0) break;
-
-      E.cursorY = c == PAGE_UP
-        ? E.rowOffset
-        : min(E.rowOffset + E.screenRows, E.numlines) - 1;
-
-      int times = E.screenRows;
-      int direction = c == PAGE_UP ? ARROW_UP : ARROW_DOWN;
-      while (times--)
-        editorMoveCursor(direction);
-      break;
-    }
-
-    case ARROW_UP:
-    case ARROW_DOWN:
-    case ARROW_LEFT:
-    case ARROW_RIGHT:
-      editorMoveCursor(c);
-      break;
-
-    case CTRL_KEY('l'):
-    case '\x1b':
-      break;
-    
-    default:
-      if (c == '\t' || !iscntrl(c))
-        editorInsertChar(c);
-      break;
+  if (E.mode == NORMAL) {
+    handleNormalMode(c);
   }
-
-  if (quit_times < QUIT_TIMES) {
-    E.isPromptOpen = false;
-    quit_times = QUIT_TIMES;
+  else if (E.mode == INSERT) {
+    handleInsertMode(c);
   }
 }
 
