@@ -124,7 +124,64 @@ void editorMoveCursor(int key) {
 }
 
 void editorProcessKeypress(void) {
+  static int quit_times = QUIT_TIMES;
+
   int c = editorReadKey();
+
+  switch (c) {
+    case ARROW_UP:
+    case ARROW_DOWN:
+    case ARROW_LEFT:
+    case ARROW_RIGHT:
+      editorMoveCursor(c);
+      break;
+
+    case HOME_KEY:
+      E.cursorX = 0;
+      break;
+
+    case PAGE_UP:
+    case PAGE_DOWN: {
+      if (E.numlines == 0) break;
+
+      E.cursorY = c == PAGE_UP
+        ? E.rowOffset
+        : min(E.rowOffset + E.screenRows, E.numlines) - 1;
+
+      int times = E.screenRows;
+      int direction = c == PAGE_UP ? ARROW_UP : ARROW_DOWN;
+      while (times--)
+        editorMoveCursor(direction);
+      break;
+    }
+
+    case CTRL_KEY('q'):
+      quit_times--;
+      if (E.dirty && quit_times > 0) {
+        editorSetStatusMessage("File has unsaved changes. Press Ctrl-Q again to quit");
+        return;
+      }
+      write(STDOUT_FILENO, "\x1b[2J", 4); // Erase entire screen
+      write(STDOUT_FILENO, "\x1b[H", 3);  // Moves cursor to home position (0, 0)
+      exit(0);
+      break;
+
+    case CTRL_KEY('s'):
+      editorSave();
+      break;
+
+    case CTRL_KEY('f'):
+      editorFind();
+      break;
+
+    default:
+      break;
+  }
+
+  if (quit_times < QUIT_TIMES) {
+    E.isPromptOpen = false;
+    quit_times = QUIT_TIMES;
+  }
 
   if (E.mode == NORMAL) {
     handleNormalMode(c);
