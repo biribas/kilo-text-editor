@@ -75,6 +75,16 @@ void refreshPromptCursor(void) {
   write(STDOUT_FILENO, temp, strlen(temp));
 }
 
+void fixCursorXPosition(void) {
+  E.cursorX = min(E.cursorX, max(0, E.lines[E.cursorY].length + (E.mode == NORMAL ? -1 : 0)));
+}
+
+void moveCursorToLine(int lineNumber) {
+  E.cursorY = clamp(1, lineNumber, E.numlines) - 1;
+  E.cursorX = E.highestLastX;
+  fixCursorXPosition();
+}
+
 void editorMoveCursor(int key) {
   editorLine *currentLine = &E.lines[E.cursorY];
 
@@ -118,8 +128,7 @@ void editorMoveCursor(int key) {
     }
   }
 
-  currentLine = &E.lines[E.cursorY];
-  E.cursorX = min(E.cursorX, max(0, currentLine->length + (E.mode == NORMAL ? -1 : 0)));
+  fixCursorXPosition();
 }
 
 void editorProcessKeypress(void) {
