@@ -24,6 +24,14 @@ void handleNormalMode(int c) {
     }
     
     switch (c) {
+      case 'k':
+        moveCursorToLine(max(1, E.cursorY + 1 - num));
+        break;
+
+      case 'j':
+        moveCursorToLine(min(E.numlines, E.cursorY + 1 + num));
+        break;
+        
       case 'G':
         moveCursorToLine(num);
         break;
