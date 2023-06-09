@@ -25,21 +25,19 @@ void handleNormalMode(int c) {
     
     switch (c) {
       case 'G':
-        E.cursorY = clamp(1, num, E.numlines - 1);
-        E.cursorX = clamp(0, E.cursorX, E.lines[E.cursorY].length - 1);
+        moveCursorToLine(num);
         break;
 
       case 'g': {
         switch (editorReadKey()) {
-          // Go to the first line of the document
           case 'g':
-            E.cursorY = clamp(1, num, E.numlines - 1);
-            E.cursorX = clamp(0, E.cursorX, E.lines[E.cursorY].length - 1);
+            moveCursorToLine(num);
             break;
         }
         break;
       }
     }
+    return; 
   }
 
   switch (c) {
@@ -93,8 +91,7 @@ void handleNormalMode(int c) {
       switch (editorReadKey()) {
         // Go to the first line of the document
         case 'g':
-          E.cursorY = 0;
-          E.cursorX = clamp(0, E.cursorX, E.lines[E.cursorY].length - 1);
+          moveCursorToLine(1);
           break;
 
         default:
@@ -106,8 +103,7 @@ void handleNormalMode(int c) {
 
     // Go to the last line of the document
     case 'G':
-      E.cursorY = E.numlines - 1;
-      E.cursorX = clamp(0, E.cursorX, E.lines[E.cursorY].length - 1);
+      moveCursorToLine(E.numlines);
       break;
 
     // Jump to next paragraph
