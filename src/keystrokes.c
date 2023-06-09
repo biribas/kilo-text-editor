@@ -9,8 +9,6 @@
 #include <tools.h>
 
 void handleNormalMode(int c) {
-  static int quit_times = QUIT_TIMES;
-
   switch (c) {
     // Insert before the cursor
     case 'i':
@@ -27,7 +25,9 @@ void handleNormalMode(int c) {
     // Insert after the cursor
     case 'a':
       E.mode = INSERT;
-      E.cursorX++;
+      if (E.cursorX != 0) {
+        E.cursorX++;
+      }
       break;
 
     // Insert at the end of the line
@@ -51,6 +51,7 @@ void handleNormalMode(int c) {
 
     case 'x': // delete character
     case 's': // delete character and substitute text
+      if (E.lines[E.cursorY].length == 0) break;
       if (c == 's') E.mode = INSERT;
       editorLineDeleteChar(&E.lines[E.cursorY], E.cursorX);
       break;
@@ -60,6 +61,7 @@ void handleNormalMode(int c) {
         // Go to the first line of the document
         case 'g':
           E.cursorY = 0;
+          E.cursorX = clamp(0, E.cursorX, E.lines[E.cursorY].length - 1);
           break;
 
         default:
@@ -72,6 +74,7 @@ void handleNormalMode(int c) {
     // Go to the last line of the document
     case 'G':
       E.cursorY = E.numlines - 1;
+      E.cursorX = clamp(0, E.cursorX, E.lines[E.cursorY].length - 1);
       break;
 
     // Jump to next paragraph
@@ -121,11 +124,6 @@ void handleNormalMode(int c) {
     case '$':
       E.cursorX = max(0, E.lines[E.cursorY].length - 1);
       break;
-  }
-
-  if (quit_times < QUIT_TIMES) {
-    E.isPromptOpen = false;
-    quit_times = QUIT_TIMES;
   }
 }
 
