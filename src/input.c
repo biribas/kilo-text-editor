@@ -99,8 +99,7 @@ void editorMoveCursor(int key) {
       }
       else if (E.cursorY > 0) {
         E.cursorY--;
-        int rightLimit = max(0, E.lines[E.cursorY].length + (E.mode == NORMAL ? -1 : 0));
-        E.cursorX = rightLimit;
+        E.cursorX = max(0, E.lines[E.cursorY].length + (E.mode == NORMAL ? -1 : 0));;
       }
       E.highestLastX = E.cursorX;
       break;
