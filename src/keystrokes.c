@@ -58,6 +58,7 @@ void handleNormalMode(int c) {
     case 'I': {
       E.mode = INSERT;
       E.cursorX = indentation(&E.lines[E.cursorY]);
+      E.highestLastX = E.cursorX;
       break;
     }
 
@@ -65,7 +66,7 @@ void handleNormalMode(int c) {
     case 'a':
       E.mode = INSERT;
       if (E.cursorX != 0) {
-        E.cursorX++;
+        E.highestLastX = ++E.cursorX;
       }
       break;
 
@@ -73,6 +74,7 @@ void handleNormalMode(int c) {
     case 'A':
       E.mode = INSERT;
       E.cursorX = E.lines[E.cursorY].length;
+      E.highestLastX = E.cursorX;
       break;
 
     case 'o': // Append a new line bellow the current line
