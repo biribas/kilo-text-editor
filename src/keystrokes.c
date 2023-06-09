@@ -9,6 +9,39 @@
 #include <tools.h>
 
 void handleNormalMode(int c) {
+  if (isdigit(c)) {
+    long num = c - 48; 
+    int digits = 1;
+
+    while (true) {
+      c = editorReadKey();
+      if (!isdigit(c)) break;
+
+      if (digits < 10) {
+        num = 10 * num + c - 48;
+        digits++;
+      }
+    }
+    
+    switch (c) {
+      case 'G':
+        E.cursorY = clamp(1, num, E.numlines - 1);
+        E.cursorX = clamp(0, E.cursorX, E.lines[E.cursorY].length - 1);
+        break;
+
+      case 'g': {
+        switch (editorReadKey()) {
+          // Go to the first line of the document
+          case 'g':
+            E.cursorY = clamp(1, num, E.numlines - 1);
+            E.cursorX = clamp(0, E.cursorX, E.lines[E.cursorY].length - 1);
+            break;
+        }
+        break;
+      }
+    }
+  }
+
   switch (c) {
     // Insert before the cursor
     case 'i':

@@ -119,7 +119,7 @@ void editorMoveCursor(int key) {
   }
 
   currentLine = &E.lines[E.cursorY];
-  E.cursorX = min(E.cursorX, currentLine->length);
+  E.cursorX = min(E.cursorX, max(0, currentLine->length + (E.mode == NORMAL ? -1 : 0)));
 }
 
 void editorProcessKeypress(void) {
