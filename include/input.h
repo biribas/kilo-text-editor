@@ -5,7 +5,7 @@
   char *editorPrompt(char *, bool (*callback)(char *, int));
   void refreshPromptCursor(void);
   void fixCursorXPosition(void);
-  void moveCursorToLine(int lineNumber);
+  void moveCursorToLine(long lineNumber);
   void editorMoveCursor(int);
   void editorProcessKeypress(void);
 #endif
