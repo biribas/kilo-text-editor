@@ -9,8 +9,6 @@ TARGET = kilo
 
 CFLAGS = -Wall -Wextra -pedantic -std=c99 -I./include
 
-FILES = $(shell echo $(words $(wildcard $(TARGETDIR)/*) + $(wildcard $(BUILDDIR)/*) | bc))
-
 $(TARGET): $(OBJECTS)
 	@echo "Linking files..."
 	@mkdir -p $(TARGETDIR)
