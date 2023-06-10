@@ -103,11 +103,27 @@ void handleNormalMode(int c) {
         case 'g':
           moveCursorToLine(1);
           break;
+      }
+      break;
+    }
 
-        default:
+    case 'z': {
+      switch (editorReadKey()) {
+        // Position cursor on top of the screen
+        case 't':
+          E.rowOffset = E.cursorY;
+          break;
+
+        // Center cursor on screen
+        case 'z':
+          E.rowOffset = max(0, E.cursorY - E.screenRows / 2);
+          break;
+
+        // Position cursor on bottom of the screen
+        case 'b':
+          E.rowOffset = max(0, E.cursorY - E.screenRows);
           break;
       }
-
       break;
     }
 
@@ -192,7 +208,7 @@ void handleInsertMode(int c) {
       editorDeleteChar();
       break;
     }
-    
+
     default:
       if (c == '\t' || !iscntrl(c))
         editorInsertChar(c);
