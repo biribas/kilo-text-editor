@@ -8,43 +8,47 @@
 #include <terminal.h>
 #include <tools.h>
 
+void handleDigitCommands(int c) {
+  long num = c - 48; 
+  int digits = 1;
+
+  while (true) {
+    c = editorReadKey();
+    if (!isdigit(c)) break;
+
+    if (digits < 10) {
+      num = 10 * num + c - 48;
+      digits++;
+    }
+  }
+  
+  switch (c) {
+    case 'k':
+      moveCursorToLine(max(1, E.cursorY + 1 - num));
+      break;
+
+    case 'j':
+      moveCursorToLine(min(E.numlines, E.cursorY + 1 + num));
+      break;
+      
+    case 'G':
+      moveCursorToLine(num);
+      break;
+
+    case 'g': {
+      switch (editorReadKey()) {
+        case 'g':
+          moveCursorToLine(num);
+          break;
+      }
+      break;
+    }
+  }
+}
+
 void handleNormalMode(int c) {
   if (isdigit(c)) {
-    long num = c - 48; 
-    int digits = 1;
-
-    while (true) {
-      c = editorReadKey();
-      if (!isdigit(c)) break;
-
-      if (digits < 10) {
-        num = 10 * num + c - 48;
-        digits++;
-      }
-    }
-    
-    switch (c) {
-      case 'k':
-        moveCursorToLine(max(1, E.cursorY + 1 - num));
-        break;
-
-      case 'j':
-        moveCursorToLine(min(E.numlines, E.cursorY + 1 + num));
-        break;
-        
-      case 'G':
-        moveCursorToLine(num);
-        break;
-
-      case 'g': {
-        switch (editorReadKey()) {
-          case 'g':
-            moveCursorToLine(num);
-            break;
-        }
-        break;
-      }
-    }
+    handleDigitCommands(c);
     return; 
   }
 
