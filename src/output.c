@@ -36,16 +36,16 @@ void editorScrollX(void) {
 
   int gap = min(colOffsetGap, E.rCursorX);
 
-  int min = E.rCursorX - E.screenCols + gap + 1;
-  int max = E.rCursorX - gap;
+  int minOffset = E.rCursorX - E.screenCols + gap + 1;
+  int maxOffset = E.rCursorX - gap;
 
-  E.colOffset = clamp(min, E.colOffset, max);
+  E.colOffset = clamp(minOffset, E.colOffset, maxOffset);
 }
 
 void editorScrollY(void) {
   int gap;
 
-  const int rowOffsetGap = E.screenRows * 0.25;
+  const int rowOffsetGap = E.screenRows * 0.20;
 
   if (E.cursorY < rowOffsetGap) {
     gap = E.cursorY;
@@ -57,10 +57,10 @@ void editorScrollY(void) {
     gap = rowOffsetGap;
   }
 
-  int min = E.cursorY - E.screenRows + 1 + gap;
-  int max = E.cursorY - gap;
+  int minOffset = max(0, E.cursorY - E.screenRows + 1 + gap);
+  int maxOffset = min(max(0, E.cursorY - rowOffsetGap), E.cursorY - gap);
 
-  E.rowOffset = clamp(min, E.rowOffset, max);
+  E.rowOffset = clamp(minOffset, E.rowOffset, maxOffset);
 }
 
 void editorDrawLines(buffer *buff) {
