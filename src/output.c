@@ -32,33 +32,21 @@ void editorRefreshScreen(void) {
 }
 
 void editorScrollX(void) {
-  const int colOffsetGap = E.screenCols * 0.20;
+  const int colOffsetGap = E.screenCols * 0.15;
 
-  int gap = min(colOffsetGap, E.rCursorX);
-
-  int minOffset = E.rCursorX - E.screenCols + gap + 1;
-  int maxOffset = E.rCursorX - gap;
+  int minOffset = max(0, E.rCursorX - E.screenCols + colOffsetGap + 1);
+  int maxOffset = max(0, E.rCursorX - colOffsetGap);
 
   E.colOffset = clamp(minOffset, E.colOffset, maxOffset);
 }
 
 void editorScrollY(void) {
-  int gap;
-
   const int rowOffsetGap = E.screenRows * 0.20;
 
-  if (E.cursorY < rowOffsetGap) {
-    gap = E.cursorY;
-  }
-  else if (E.cursorY > E.numlines - rowOffsetGap) {
-    gap = E.numlines - E.cursorY;
-  }
-  else {
-    gap = rowOffsetGap;
-  }
+  int gap = min(rowOffsetGap, E.numlines - E.cursorY);
 
   int minOffset = max(0, E.cursorY - E.screenRows + 1 + gap);
-  int maxOffset = min(max(0, E.cursorY - rowOffsetGap), E.cursorY - gap);
+  int maxOffset = max(0, E.cursorY - rowOffsetGap);
 
   E.rowOffset = clamp(minOffset, E.rowOffset, maxOffset);
 }
