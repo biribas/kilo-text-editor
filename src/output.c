@@ -225,8 +225,9 @@ void printTextLine(int row, color_t background, buffer *buff) {
   color_t prevColor = theme.text.standard;
 
   char *content = &E.lines[row].renderContent[E.colOffset];
-  int length = clamp(0, E.lines[row].renderLength - E.colOffset, E.screenCols);
   color_t *highlight = &E.lines[row].highlight[E.colOffset];
+
+  int length = clamp(0, E.lines[row].renderLength - E.colOffset, E.screenCols - E.sidebarWidth);
 
   for (int j = 0; j < length; j++) {
     color_t curColor = highlight[j];
