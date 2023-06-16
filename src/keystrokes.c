@@ -209,9 +209,10 @@ void handleNormalMode(int c) {
     // Insert after the cursor
     case 'a':
       E.mode = INSERT;
-      if (E.cursorX != 0) {
-        E.highestLastX = ++E.cursorX;
+      if (E.lines[E.cursorY].length != 0) {
+        E.cursorX++;
       }
+      E.highestLastX = E.cursorX;
       break;
 
     // Insert at the end of the line
@@ -352,8 +353,10 @@ void handleInsertMode(int c) {
     case '\x1b':
     case CTRL_KEY('c'):
       E.mode = NORMAL;
-      if (E.cursorX != 0)
+      if (E.cursorX != 0) {
         E.cursorX--;
+      }
+      E.highestLastX = E.cursorX;
       break;
 
     case '\r':
