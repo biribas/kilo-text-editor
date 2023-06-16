@@ -7,6 +7,7 @@
   int clamp(int min, int value, int max);
   int mod(int, int);
   bool isSeparator(int);
+  bool isSpecial(int c);
   bool colorcmp(color_t, color_t);
   bool isDark(int r, int g, int b);
 #endif
