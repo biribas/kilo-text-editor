@@ -17,4 +17,6 @@
   void printTextLine(int row, color_t background, buffer *);
   void printMainScreen(buffer *);
   void adjustSidebarWidth(void);
+  void fixCursorXPosition(void);
+  void moveCursorToLine(long lineNumber);
 #endif
