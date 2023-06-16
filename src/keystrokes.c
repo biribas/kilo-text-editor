@@ -231,7 +231,7 @@ void handleNormalMode(int c) {
       editorInsertLine(c == 'o' ? ++E.cursorY : E.cursorY, line, tabs);
 
       E.mode = INSERT;
-      E.cursorX = tabs;
+      E.cursorX = E.highestLastX = tabs;
       break;
     }
 
