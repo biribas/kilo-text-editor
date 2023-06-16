@@ -8,6 +8,146 @@
 #include <terminal.h>
 #include <tools.h>
 
+// Handle motions 'w', 'W', 'ge' and 'gE'
+void handleOuterBoundsHorizontalMotions(bool punctuation, bool fowards) {
+  editorLine curLine = E.lines[E.cursorY];
+  short direction = fowards ? 1 : -1;
+
+  int x = E.cursorX + (curLine.length ? direction : 0);
+  int y = E.cursorY;
+
+  int xLimit;
+  int yLimit;
+
+  if (fowards) {
+    xLimit = curLine.length;
+    yLimit = E.numlines;
+  }
+  else {
+    xLimit = yLimit = -1;
+  }
+
+  char cur = curLine.content[E.cursorX];
+  bool isFirstCharSpecial = isSpecial(cur);
+  bool found = false;
+
+  for (; y != yLimit; y += direction) {
+    // When another line is reached
+    if (y != E.cursorY) {
+
+      // Empty line
+      if (E.lines[y].length == 0) {
+        E.cursorY = y;
+        E.cursorX = E.highestLastX = 0;
+        return;
+      }
+
+      // Ignore character type
+      found = true;
+
+      if (fowards) {
+        x = 0;
+        xLimit = E.lines[y].length;
+      }
+      else {
+        x = E.lines[y].length - 1;
+        xLimit = -1;
+      }
+    }
+
+    for (; x != xLimit; x += direction) {
+      cur = E.lines[y].content[x];
+
+      if (!isspace(cur) && (found || (punctuation && isFirstCharSpecial ^ isSpecial(cur)))) {
+        E.cursorY = y;
+        E.cursorX = E.highestLastX = x;
+        return;
+      }
+
+      if (isspace(cur)) {
+        found = true;
+        continue;
+      }
+    }
+  }
+
+  E.cursorY = y - direction;
+  E.cursorX = E.highestLastX = x - direction;
+}
+
+// Handle motions 'e', 'E', 'b' and 'B'
+void handleInnerBoundsHorizontalMotions(bool punctuation, bool fowards) {
+  editorLine curLine = E.lines[E.cursorY];
+  short direction = fowards ? 1 : -1; 
+
+  int x = E.cursorX + (curLine.length ? direction : 0);
+  int y = E.cursorY;
+
+  int xLimit;
+  int yLimit;
+
+  if (fowards) {
+    xLimit = curLine.length;
+    yLimit = E.numlines;
+  }
+  else {
+    xLimit = yLimit = -1;
+  }
+
+  bool atTheEdgeOfLine = x == xLimit;
+
+  char curChar = curLine.content[E.cursorX];
+  char nextChar = atTheEdgeOfLine ? curChar : curLine.content[x];
+
+  bool isFirstCharSpecial = isSpecial(curChar);
+
+  bool searchNextWord = (
+    atTheEdgeOfLine ||
+    isspace(curChar) ||
+    isspace(nextChar) ||
+    (punctuation && isFirstCharSpecial ^ isSpecial(nextChar))
+  );
+
+  for (; y != yLimit; y += direction) {
+    if (y != E.cursorY) {
+      if (fowards) {
+        x = 0;
+        xLimit = E.lines[y].length;
+      }
+      else {
+        x = E.lines[y].length - 1;
+        xLimit = -1;
+      }
+    }
+
+    for (; x != xLimit; x += direction) {
+      curChar = E.lines[y].content[x];
+
+      if (searchNextWord) {
+        if (!isspace(curChar)) {
+          searchNextWord = false;
+          isFirstCharSpecial = isSpecial(curChar);
+        }
+        continue;
+      }
+
+      if (isspace(curChar) || (punctuation && (isFirstCharSpecial ^ isSpecial(curChar)))) {
+        E.cursorY = y;
+        E.cursorX = E.highestLastX = x - direction;
+        return;
+      }
+    }
+
+    if (!searchNextWord) {
+      y += direction;
+      break;
+    }
+  }
+
+  E.cursorY = y - direction;
+  E.cursorX = E.highestLastX = x - direction;
+}
+
 void handleDigitCommands(int c) {
   long num = c - 48; 
   int digits = 1;
@@ -102,10 +242,16 @@ void handleNormalMode(int c) {
       break;
 
     case 'g': {
-      switch (editorReadKey()) {
+      c = editorReadKey();
+      switch (c) {
         // Go to the first line of the document
         case 'g':
           moveCursorToLine(1);
+          break;
+
+        case 'e': // Jump backwards to the end of a word 
+        case 'E': // Jump backwards to the end of a word (words can contain punctuation) 
+          handleOuterBoundsHorizontalMotions(islower(c), false);
           break;
       }
       break;
@@ -130,6 +276,21 @@ void handleNormalMode(int c) {
       }
       break;
     }
+
+    case 'w': // Jump forwards to the start of a word
+    case 'W': // Jump forwards to the start of a word (words can contain punctuation)
+      handleOuterBoundsHorizontalMotions(islower(c), true);
+      break;
+
+    case 'e': // Jump forwards to the end of a word
+    case 'E': // Jump forwards to the end of a word (words can contain punctuation) 
+      handleInnerBoundsHorizontalMotions(islower(c), true);
+      break;
+
+    case 'b': // Jump backwards to the start of a word
+    case 'B': // Jump backwards to the start of a word (words can contain punctuation)
+      handleInnerBoundsHorizontalMotions(islower(c), false);
+      break;
 
     // Go to the last line of the document
     case 'G':
