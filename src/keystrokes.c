@@ -8,6 +8,28 @@
 #include <terminal.h>
 #include <tools.h>
 
+void joinLines(bool withSpace) {
+  if (E.cursorY + 1 >= E.numlines) return;
+
+  editorLine *curLine = &E.lines[E.cursorY];
+  editorLine *nextLine = &E.lines[E.cursorY + 1];
+
+  int spaces = 0;
+  if (withSpace) {
+    while (spaces < nextLine->length) {
+      if (!isspace(nextLine->content[spaces])) break;
+      spaces++;
+    }
+    nextLine->length -= spaces;
+
+    if (nextLine->length)
+      editorLineInsertChar(curLine, curLine->length, ' ');
+  }
+
+  editorLineAppendString(curLine, &nextLine->content[spaces], nextLine->length);
+  editorDeleteLine(E.cursorY + 1);
+}
+
 // Handle motions 'w', 'W', 'ge' and 'gE'
 void handleOuterBoundsHorizontalMotions(bool punctuation, bool fowards) {
   editorLine curLine = E.lines[E.cursorY];
@@ -250,6 +272,10 @@ void handleNormalMode(int c) {
           moveCursorToLine(1);
           break;
 
+        case 'J':
+          joinLines(false);
+          break;
+
         case 'e': // Jump backwards to the end of a word 
         case 'E': // Jump backwards to the end of a word (words can contain punctuation) 
           handleOuterBoundsHorizontalMotions(islower(c), false);
@@ -297,6 +323,11 @@ void handleNormalMode(int c) {
     case 'G':
       moveCursorToLine(E.numlines);
       break;
+
+    case 'J': {
+      joinLines(true);
+      break;
+    }
 
     // Jump to next paragraph
     case '}':
