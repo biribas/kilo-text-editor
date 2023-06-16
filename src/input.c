@@ -142,15 +142,15 @@ void editorProcessKeypress(void) {
     case ARROW_LEFT:
     case ARROW_RIGHT:
       editorMoveCursor(c);
-      break;
+      return;
 
     case HOME_KEY:
       E.cursorX = 0;
-      break;
+      return;
 
     case PAGE_UP:
     case PAGE_DOWN: {
-      if (E.numlines == 0) break;
+      if (E.numlines == 0) return;
 
       E.cursorY = c == PAGE_UP
         ? E.rowOffset
@@ -160,7 +160,7 @@ void editorProcessKeypress(void) {
       int direction = c == PAGE_UP ? ARROW_UP : ARROW_DOWN;
       while (times--)
         editorMoveCursor(direction);
-      break;
+      return;
     }
 
     case CTRL_KEY('q'):
@@ -172,15 +172,15 @@ void editorProcessKeypress(void) {
       write(STDOUT_FILENO, "\x1b[2J", 4); // Erase entire screen
       write(STDOUT_FILENO, "\x1b[H", 3);  // Moves cursor to home position (0, 0)
       exit(0);
-      break;
+      return;
 
     case CTRL_KEY('s'):
       editorSave();
-      break;
+      return;
 
     case CTRL_KEY('f'):
       editorFind();
-      break;
+      return;
 
     default:
       break;
