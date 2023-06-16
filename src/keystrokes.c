@@ -325,6 +325,7 @@ void handleNormalMode(int c) {
       break;
 
     case 'j':
+    case '\r':
       editorMoveCursor(ARROW_DOWN);
       break;
 
