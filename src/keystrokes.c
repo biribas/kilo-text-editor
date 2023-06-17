@@ -8,10 +8,19 @@
 #include <terminal.h>
 #include <tools.h>
 
-void changeEntireLine(void) {
+void changeToEndOFLine(int at) {
   E.mode = INSERT;
-  editorLine *line = &E.lines[E.cursorY];
-  editorLine *prevLine = E.cursorY ? &E.lines[E.cursorY - 1] : line;
+  editorLine *line = &E.lines[at];
+  line->length = E.cursorX;
+  line->content = realloc(line->content, line->length + 1);
+  line->content[line->length] = '\0';
+  editorUpdateLine(line);
+}
+
+void changeEntireLine(int at) {
+  E.mode = INSERT;
+  editorLine *line = &E.lines[at];
+  editorLine *prevLine = at ? &E.lines[at - 1] : line;
 
   int tabs = line->length ? indentation(line) : indentation(prevLine);
 
@@ -21,8 +30,8 @@ void changeEntireLine(void) {
   memset(line->content, TAB, tabs);
   line->content[tabs] = '\0';
 
-  editorUpdateLine(line);
   E.cursorX = line->length;
+  editorUpdateLine(line);
 }
 
 void joinLines(bool withSpace) {
@@ -284,15 +293,24 @@ void handleNormalMode(int c) {
       editorLineDeleteChar(&E.lines[E.cursorY], E.cursorX);
       break;
 
+    case 'C': {
+      changeToEndOFLine(E.cursorY);
+      break;
+    }
+
     case 'S':
-      changeEntireLine();
+      changeEntireLine(E.cursorY);
       break;
 
     case 'c': {
       c = editorReadKey();
       switch (c) {
         case 'c':
-          changeEntireLine();
+          changeEntireLine(E.cursorY);
+          break;
+
+        case '$':
+          changeToEndOFLine(E.cursorY);
           break;
       }
       break;
