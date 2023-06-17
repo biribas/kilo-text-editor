@@ -206,6 +206,7 @@ void setDefaultColors(buffer *buff) {
 void printLineNumber(int row, buffer *buff) {
   char sidebarLine[E.sidebarWidth];
   memset(sidebarLine, SPACE, E.sidebarWidth);
+  sidebarLine[E.sidebarWidth] = '\0';
 
   char num[E.sidebarWidth];
   int n;
