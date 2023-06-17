@@ -12,9 +12,10 @@ char *C_EXTENSIONS[] = {".c", ".cpp", ".h", NULL};
 char *C_KEYWORDS[] = {
   "switch", "if", "while", "for", "break", "continue", "return", "else",
   "struct", "union", "typedef", "static", "enum", "class", "case", "int|",
-  "long|", "double|", "float|", "char|", "unsigned|", "signed|", "void|",
-  "#include", "#define", "#undef", "#ifdef", "#ifndef", "#if", "#elif",
-  "#else", "#endif", "#line", "#error", "#warning", "#region", "#endregion", NULL
+  "long|", "double|", "float|", "char|", "unsigned|", "signed|", "void|", "short|",
+  "unsigned|", "signed|", "#include", "#define", "#undef", "#ifdef", "#ifndef",
+  "#if", "#elif", "#else", "#endif", "#line", "#error", "#warning", "#region", 
+  "#endregion", NULL
 };
 char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", ".", NULL};
 char *C_BRACKETS[] = {"(", ")", "{", "}", "[", "]", NULL};
