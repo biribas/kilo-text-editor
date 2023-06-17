@@ -4,9 +4,20 @@
 
 int indentation(editorLine *line) {
   int tabs = 0;
-  while (tabs < line->length) {
-    if (line->content[tabs] != TAB) break;
-    tabs++;
+  int spaces = 0;
+
+  for (int i = 0; i < line->length; i++) {
+    if (!isspace(line->content[i]))
+      break;
+
+    if (line->content[i] == TAB)
+      tabs++;
+
+    else if (line->content[i] == SPACE) {
+      if (++spaces < TAB_SIZE) continue;
+      spaces = 0;
+      tabs++;
+    }
   }
   return tabs;
 }
