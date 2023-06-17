@@ -267,6 +267,16 @@ void handleNormalMode(int c) {
       editorLineDeleteChar(&E.lines[E.cursorY], E.cursorX);
       break;
 
+    case 'd': {
+      c = editorReadKey();
+      switch (c) {
+        case 'd':
+          editorDeleteLine(E.cursorY);
+          break;
+      }
+      break;
+    }
+
     case 'g': {
       c = editorReadKey();
       switch (c) {
