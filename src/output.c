@@ -116,21 +116,25 @@ void editorDrawStatusBar(buffer *buff) {
       sprintf(percentage, "%d%%", num);
   }
 
-  char cx[80], cy[80];
+  char cx[128], cy[128];
   int cxLen = sprintf(cx, "%d", E.cursorX + 1);
   int cyLen = sprintf(cy, "%d", E.cursorY + 1);
 
-  int cursorlen = max(6, cxLen + cyLen + 1);
-  char cursorPosition[cursorlen];
-  memset(cursorPosition, ' ', cursorlen);
+  const short cxLenMin = 2;
+  const short cyLenMin = 3;
 
-  int yOffset = max(0, 3 - cyLen);
+  int cursorlen = max(cxLenMin, cxLen) + max(cyLenMin, cyLen) + 1;
+  char cursorPosition[cursorlen];
+  memset(cursorPosition, SPACE, cursorlen);
+
+  int yOffset = max(0, cyLenMin - cyLen);
   int xOffset = yOffset + cyLen + 1;
   memcpy(cursorPosition + yOffset, cy, cyLen);
   cursorPosition[xOffset - 1] = ':';
   memcpy(cursorPosition + xOffset, cx, cxLen);
+  cursorPosition[cursorlen] = '\0';
 
-  char position[80];
+  char position[128];
   int posLen = sprintf(position, " %s  %s ", cursorPosition, percentage);
 
   editorHighlightOutput(buff, theme.statusBar);
