@@ -28,7 +28,7 @@ void editorDeleteChar(void) {
 
 void editorInsertNewLine(void) {
   if (E.cursorX == 0) {
-    editorInsertLine(E.cursorY, "", 0);
+    editorInsertLine(E.cursorY, EMPTY_STRING, 0);
   }
   else {
     editorLine *line = &E.lines[E.cursorY];

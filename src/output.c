@@ -65,7 +65,7 @@ void editorDrawLines(buffer *buff) {
     }
 
     if (E.splashScreen && i == E.screenRows / 3) {
-      printMainScreen(buff);
+      printSplashScreen(buff);
     }
 
     appendBuffer(buff, "\x1b[K", 3); // Erase from cursor to end of line
@@ -92,7 +92,7 @@ void editorDrawStatusBar(buffer *buff) {
   appendBuffer(buff, "\x1b[22m", 5);
 
   const char *filename = E.filename ? E.filename : "[No name]";
-  const char *modified = E.dirty ? " *" : "";
+  const char *modified = E.dirty ? " *" : EMPTY_STRING;
 
   char bufferInfo[80];
   int bufferLen = snprintf(bufferInfo, sizeof(bufferInfo), " %.20s%s ", filename, modified);
@@ -201,7 +201,7 @@ void setDefaultColors(buffer *buff) {
 
 void printLineNumber(int row, buffer *buff) {
   char sidebarLine[E.sidebarWidth];
-  memset(sidebarLine, ' ', E.sidebarWidth);
+  memset(sidebarLine, SPACE, E.sidebarWidth);
 
   char num[E.sidebarWidth];
   int n;
@@ -245,7 +245,7 @@ void printTextLine(int row, color_t background, buffer *buff) {
   }
 }
 
-void printMainScreen(buffer *buff) {
+void printSplashScreen(buffer *buff) {
   char welcome[80];
   int length = snprintf(welcome, sizeof(welcome), "Kilo editor -- version %s", KILO_VERSION);
 

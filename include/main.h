@@ -21,6 +21,12 @@
   #define TAB_SIZE 2
   #define QUIT_TIMES 2
   #define MIN_SIDEBAR_WIDTH 6
+  #define RETURN '\r'
+  #define SPACE ' '
+  #define ESC '\x1b'
+  #define TAB '\t'
+  #define LINE_FEED '\n'
+  #define EMPTY_STRING ""
 
   // Highlight flags
   #define HIGHLIGHT_NUMBERS (1 << 0)

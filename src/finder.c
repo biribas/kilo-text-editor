@@ -25,7 +25,7 @@ bool editorFindCallback(char *query, int key) {
 
   clearSearchHighlight();
 
-  if (E.numlines == 0 || *query == '\0' || key == '\r' || key == '\x1b') {
+  if (E.numlines == 0 || *query == '\0' || key == RETURN || key == ESC) {
     return false;
   }
 

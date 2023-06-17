@@ -20,7 +20,7 @@ char *editorLinesToString(int *buflen) {
   for (int i = 0; i < E.numlines; i++) {
     memcpy(p, E.lines[i].content, E.lines[i].length);
     p += E.lines[i].length;
-    *p = '\n';
+    *p = LINE_FEED;
     p++;
   }
 
@@ -29,7 +29,7 @@ char *editorLinesToString(int *buflen) {
 
 void editorOpen(char *filename) {
   if (filename == NULL) {
-    editorInsertLine(E.numlines, "", 0);
+    editorInsertLine(E.numlines, EMPTY_STRING, 0);
     E.splashScreen = true;
     return;
   }
@@ -47,7 +47,7 @@ void editorOpen(char *filename) {
   ssize_t length;
 
   while ((length = getline(&line, &capacity, file)) != -1) {
-    while (length > 0 && (line[length - 1] == '\n' || line[length - 1] == '\r'))
+    while (length > 0 && (line[length - 1] == LINE_FEED || line[length - 1] == RETURN))
       length--;
     editorInsertLine(E.numlines, line, length);
   }

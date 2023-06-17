@@ -31,7 +31,7 @@ char *editorPrompt(char *prompt, bool (*callback)(char *, int)) {
       if (buflen == 0) continue;
       buf[--buflen] = '\0';
     }
-    else if (c == '\x1b') {
+    else if (c == ESC) {
       if (callback) {
         callback(buf, c);
         E.cursorX = E.savedLastX;
@@ -44,7 +44,7 @@ char *editorPrompt(char *prompt, bool (*callback)(char *, int)) {
       E.isPromptOpen = false;
       return NULL;
     }
-    else if (c == '\r') {
+    else if (c == RETURN) {
       if (buflen == 0) continue;
       if (callback) callback(buf, c);
 

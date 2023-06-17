@@ -40,7 +40,7 @@ int editorReadKey(void) {
       die("read");
   }
 
-  if (c == '\x1b') {
+  if (c == ESC) {
     char sequence[3];
 
     if (read(STDIN_FILENO, &sequence[0], 1) != 1) return c;

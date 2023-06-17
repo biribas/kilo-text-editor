@@ -15,7 +15,7 @@
   void setDefaultColors(buffer *);
   void printLineNumber(int row, buffer *);
   void printTextLine(int row, color_t background, buffer *);
-  void printMainScreen(buffer *);
+  void printSplashScreen(buffer *);
   void adjustSidebarWidth(void);
   void fixCursorXPosition(void);
   void moveCursorToLine(long lineNumber);

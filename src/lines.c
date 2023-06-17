@@ -5,7 +5,7 @@
 int indentation(editorLine *line) {
   int tabs = 0;
   while (tabs < line->length) {
-    if (line->content[tabs] != '\t') break;
+    if (line->content[tabs] != TAB) break;
     tabs++;
   }
   return tabs;
@@ -14,7 +14,7 @@ int indentation(editorLine *line) {
 int editorLineCxToRx(editorLine *line, int cursorX) {
   int rx = 0;
   for (int i = 0; i < cursorX; i++) {
-    if (line->content[i] == '\t')
+    if (line->content[i] == TAB)
       rx += TAB_SIZE - (rx % TAB_SIZE);
     else
       rx++;
@@ -27,7 +27,7 @@ int editorLineRxToCx(editorLine *line, int rCursorX) {
   int cx;
 
   for (cx = 0; cx < line->length; cx++) {
-    if (line->content[cx] == '\t')
+    if (line->content[cx] == TAB)
       rx += TAB_SIZE - (rx % TAB_SIZE);
     else 
       rx++;
@@ -42,7 +42,7 @@ int editorLineRxToCx(editorLine *line, int rCursorX) {
 void editorUpdateLine(editorLine *line) {
   int tabs = 0;
   for (int i = 0; i < line->length; i++) {
-    if (line->content[i] == '\t')
+    if (line->content[i] == TAB)
       tabs++;
   }
   
@@ -51,10 +51,10 @@ void editorUpdateLine(editorLine *line) {
 
   int index = 0;
   for (int i = 0; i < line->length; i++) {
-    if (line->content[i] == '\t') {
-      line->renderContent[index++] = ' ';
+    if (line->content[i] == TAB) {
+      line->renderContent[index++] = SPACE;
       while (index % TAB_SIZE != 0)
-        line->renderContent[index++] = ' ';
+        line->renderContent[index++] = SPACE;
     }
     else {
       line->renderContent[index++] = line->content[i];

@@ -23,7 +23,7 @@ void joinLines(bool withSpace) {
     nextLine->length -= spaces;
 
     if (nextLine->length)
-      editorLineInsertChar(curLine, curLine->length, ' ');
+      editorLineInsertChar(curLine, curLine->length, SPACE);
   }
 
   editorLineAppendString(curLine, &nextLine->content[spaces], nextLine->length);
@@ -356,7 +356,7 @@ void handleNormalMode(int c) {
       break;
 
     case 'j':
-    case '\r':
+    case RETURN:
       editorMoveCursor(ARROW_DOWN);
       break;
 
@@ -365,7 +365,7 @@ void handleNormalMode(int c) {
       break;
 
     case 'l':
-    case ' ':
+    case SPACE:
       editorMoveCursor(ARROW_RIGHT);
       break;
 
@@ -382,7 +382,7 @@ void handleNormalMode(int c) {
 
 void handleInsertMode(int c) {
   switch (c) {
-    case '\x1b':
+    case ESC:
     case CTRL_KEY('c'):
       E.mode = NORMAL;
       if (E.cursorX != 0) {
@@ -391,7 +391,7 @@ void handleInsertMode(int c) {
       E.highestLastX = E.cursorX;
       break;
 
-    case '\r':
+    case RETURN:
       editorInsertNewLine();
       break;
 
@@ -410,7 +410,7 @@ void handleInsertMode(int c) {
     }
 
     default:
-      if (c == '\t' || !iscntrl(c))
+      if (c == TAB || !iscntrl(c))
         editorInsertChar(c);
       break;
   }
