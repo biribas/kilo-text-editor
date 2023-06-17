@@ -17,7 +17,7 @@ char *C_KEYWORDS[] = {
   "#if", "#elif", "#else", "#endif", "#line", "#error", "#warning", "#region", 
   "#endregion", NULL
 };
-char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", ".", NULL};
+char *C_OPERATORS[] = { "+", "-", "*", "/", "%", "=", "!", "<", ">", "&", "|", "^", ".", "?", ":", NULL};
 char *C_BRACKETS[] = {"(", ")", "{", "}", "[", "]", NULL};
 char *C_END_STATEMENTS[] = {",", ";", NULL};
 
