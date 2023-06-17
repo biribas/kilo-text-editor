@@ -259,8 +259,11 @@ void handleNormalMode(int c) {
 
     case 'x': // delete character
     case 's': // delete character and substitute text
-      if (E.lines[E.cursorY].length == 0) break;
       if (c == 's') E.mode = INSERT;
+      if (E.lines[E.cursorY].length == 0) {
+        if (c == 'x') editorDeleteLine(E.cursorY);
+        break;
+      }
       editorLineDeleteChar(&E.lines[E.cursorY], E.cursorX);
       break;
 
