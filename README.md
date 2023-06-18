@@ -28,6 +28,7 @@ This is my implementation of the Kilo Text Editor, made as final project for the
 * Copy/Paste feature
 * Support for multiple buffers
 * Responsive design
+* Unicode support
 * Mouse support (yes, I know it is useless)
 * Improve vim setup
     * Add more vim motions
