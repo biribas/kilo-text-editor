@@ -65,7 +65,7 @@ put the bin file in your PATH.
 #### Basic commands
 
 | Command / key         | Description                   |
-|:---------------------:|:-----------------------------:|
+|:----------------------|:------------------------------|
 | `Ctrl-Q`              | Quit                          |
 | `Ctrl-F`              | Find words                    |
 | `Ctrl-S`              | Save file                     |
@@ -77,7 +77,7 @@ put the bin file in your PATH.
 
 #### Vim motions
 | Command               | Description                                                          
-|:---------------------:|:----------------------:|
+|:----------------------|:------------------------------|
 | `Esc` / `Ctrl-C`      | Exit insert mode
 | `i`                   | Insert before the cursor
 | `I`                   | Insert at the beggining of the line
