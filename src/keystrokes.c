@@ -346,6 +346,7 @@ void handleNormalMode(int c) {
           moveCursorToLine(1);
           break;
 
+        // Join line below to the current one without space in between  
         case 'J':
           joinLines(false);
           break;
@@ -398,6 +399,7 @@ void handleNormalMode(int c) {
       moveCursorToLine(E.numlines);
       break;
 
+    // Join line below to the current one with one space in between 
     case 'J': {
       joinLines(true);
       break;
