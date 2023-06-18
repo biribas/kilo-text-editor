@@ -105,7 +105,8 @@ bool highlightNumbers(editorLine *line, highlightController *hc) {
 bool highlightKeywords(editorLine *line, highlightController *hc) {
   char **keywords = E.syntax->keywords;
 
-  if (!hc->isPrevSep) return false;
+  if (!hc->isPrevSep)
+    return false;
 
   int j;
   for (j = 0; keywords[j]; j++) {
@@ -115,7 +116,7 @@ bool highlightKeywords(editorLine *line, highlightController *hc) {
 
     if (isDatatype) klen--;
   
-    if (hc->idx + klen >= line->renderLength)
+    if (hc->idx + klen > line->renderLength)
       continue;
 
     if (!strncmp(&line->renderContent[hc->idx], keywords[j], klen) && 
