@@ -14,6 +14,11 @@
 
 #ifndef MAIN_H_INCLUDED
 #define MAIN_H_INCLUDED
+  #if defined (_WIN32) || defined (_WIN64)
+    #define CLEAR "cls"
+  #else
+    #define CLEAR "clear"
+  #endif
 
   #define CTRL_KEY(k) ((k) & 0x1f)
   #define BUFFER_INIT {NULL, 0}
