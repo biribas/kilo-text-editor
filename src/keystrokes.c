@@ -8,8 +8,7 @@
 #include <terminal.h>
 #include <tools.h>
 
-void changeToEndOFLine(int at) {
-  E.mode = INSERT;
+void deleteToEndOFLine(int at) {
   editorLine *line = &E.lines[at];
   line->length = E.cursorX;
   line->content = realloc(line->content, line->length + 1);
@@ -294,7 +293,8 @@ void handleNormalMode(int c) {
       break;
 
     case 'C': {
-      changeToEndOFLine(E.cursorY);
+      E.mode = INSERT;
+      deleteToEndOFLine(E.cursorY);
       break;
     }
 
@@ -310,9 +310,16 @@ void handleNormalMode(int c) {
           break;
 
         case '$':
-          changeToEndOFLine(E.cursorY);
+          E.mode = INSERT;
+          deleteToEndOFLine(E.cursorY);
           break;
       }
+      break;
+    }
+
+    case 'D': {
+      deleteToEndOFLine(E.cursorY);
+      if (E.cursorX) E.cursorX--;
       break;
     }
 
@@ -321,6 +328,11 @@ void handleNormalMode(int c) {
       switch (c) {
         case 'd':
           editorDeleteLine(E.cursorY);
+          break;
+
+        case '$':
+          deleteToEndOFLine(E.cursorY);
+          if (E.cursorX) E.cursorX--;
           break;
       }
       break;
