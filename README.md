@@ -64,20 +64,20 @@ put the bin file in your PATH.
 
 #### Basic commands
 
-| Command / key         | Description                 
-|:---------------------:|:----------------------:
-| `Ctrl-Q`              | Quit
-| `Ctrl-F`              | Find words
-| `Ctrl-S`              | Save file
-| ⬅ / ⬇ / ⬆ / ⮕         | Move cursor
-| Home key              | Move to the start of line
-| End key               | Move to the end of line
-| Page up               | Scroll up by one screen
-| Page down             | Scroll down by one screen
+| Command / key         | Description                   |
+|:---------------------:|:-----------------------------:|
+| `Ctrl-Q`              | Quit                          |
+| `Ctrl-F`              | Find words                    |
+| `Ctrl-S`              | Save file                     |
+| ⬅ / ⬇ / ⬆ / ⮕         | Move cursor                   |
+| Home key              | Move to the start of line     |
+| End key               | Move to the end of line       |
+| Page up               | Scroll up by one screen       |
+| Page down             | Scroll down by one screen     |
 
 #### Vim motions
 | Command               | Description                                                          
-|:---------------------:|:----------------------:
+|:---------------------:|:----------------------:|
 | `Esc` / `Ctrl-C`      | Exit insert mode
 | `i`                   | Insert before the cursor
 | `I`                   | Insert at the beggining of the line
