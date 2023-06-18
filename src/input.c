@@ -159,8 +159,8 @@ void editorProcessKeypress(void) {
         editorSetStatusMessage("File has unsaved changes. Press Ctrl-Q again to quit");
         return;
       }
-      write(STDOUT_FILENO, "\x1b[2J", 4); // Erase entire screen
       write(STDOUT_FILENO, "\x1b[H", 3);  // Moves cursor to home position (0, 0)
+      system(CLEAR);
       exit(0);
       return;
 
