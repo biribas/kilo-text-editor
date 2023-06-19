@@ -1,9 +1,19 @@
 #include <editor.h>
 #include <lines.h>
 
+const char *pairs[] = { "{}", "[]", "()", "\"\"", "\'\'", NULL };
+
 void editorInsertChar(int c) {
   editorLineInsertChar(&E.lines[E.cursorY], E.cursorX, c);
   E.cursorX++;
+
+  for (int i = 0; pairs[i]; i++) {
+    if (c == pairs[i][0]) {
+      editorLineInsertChar(&E.lines[E.cursorY], E.cursorX, pairs[i][1]);
+      break;
+    }
+  }
+
   E.highestLastX = E.cursorX;
   E.dirty = true;
 }
