@@ -326,9 +326,27 @@ void handleNormalMode(int c) {
     case 'd': {
       c = editorReadKey();
       switch (c) {
-        case 'd':
+        case 'd': {
+          if (E.numlines == 1) {
+            editorLine *line = &E.lines[0];
+            line->content = realloc(line->content, 1);
+            *line->content = '\0';
+            line->length = 0;
+
+            E.cursorX = line->length;
+            editorUpdateLine(line);
+            return;
+          }
+
           editorDeleteLine(E.cursorY);
+
+          if (E.cursorY >= E.numlines) {
+            E.cursorY--;
+          }
+          E.cursorX = min(E.cursorX, E.lines[E.cursorY].length - 1);
+
           break;
+        }
 
         case '$':
           deleteToEndOFLine(E.cursorY);
