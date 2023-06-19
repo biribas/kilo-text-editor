@@ -8,53 +8,6 @@
 #include <terminal.h>
 #include <tools.h>
 
-void deleteToEndOFLine(int at) {
-  editorLine *line = &E.lines[at];
-  line->length = E.cursorX;
-  line->content = realloc(line->content, line->length + 1);
-  line->content[line->length] = '\0';
-  editorUpdateLine(line);
-}
-
-void changeEntireLine(int at) {
-  E.mode = INSERT;
-  editorLine *line = &E.lines[at];
-  editorLine *prevLine = at ? &E.lines[at - 1] : line;
-
-  int tabs = line->length ? indentation(line) : indentation(prevLine);
-
-  free(line->content);
-  line->content = malloc(tabs + 1);
-  line->length = tabs;
-  memset(line->content, TAB, tabs);
-  line->content[tabs] = '\0';
-
-  E.cursorX = line->length;
-  editorUpdateLine(line);
-}
-
-void joinLines(bool withSpace) {
-  if (E.cursorY + 1 >= E.numlines) return;
-
-  editorLine *curLine = &E.lines[E.cursorY];
-  editorLine *nextLine = &E.lines[E.cursorY + 1];
-
-  int spaces = 0;
-  if (withSpace) {
-    while (spaces < nextLine->length) {
-      if (!isspace(nextLine->content[spaces])) break;
-      spaces++;
-    }
-    nextLine->length -= spaces;
-
-    if (nextLine->length)
-      editorLineInsertChar(curLine, curLine->length, SPACE);
-  }
-
-  editorLineAppendString(curLine, &nextLine->content[spaces], nextLine->length);
-  editorDeleteLine(E.cursorY + 1);
-}
-
 // Handle motions 'w', 'W', 'ge' and 'gE'
 void handleOuterBoundsHorizontalMotions(bool punctuation, bool fowards) {
   editorLine curLine = E.lines[E.cursorY];
@@ -299,6 +252,7 @@ void handleNormalMode(int c) {
     }
 
     case 'S':
+      E.mode = INSERT;
       changeEntireLine(E.cursorY);
       break;
 
@@ -306,6 +260,7 @@ void handleNormalMode(int c) {
       c = editorReadKey();
       switch (c) {
         case 'c':
+          E.mode = INSERT;
           changeEntireLine(E.cursorY);
           break;
 
@@ -366,7 +321,7 @@ void handleNormalMode(int c) {
 
         // Join line below to the current one without space in between  
         case 'J':
-          joinLines(false);
+          joinLines(E.cursorY + 1, E.cursorY, false);
           break;
 
         case 'e': // Jump backwards to the end of a word 
@@ -419,7 +374,7 @@ void handleNormalMode(int c) {
 
     // Join line below to the current one with one space in between 
     case 'J': {
-      joinLines(true);
+      joinLines(E.cursorY + 1, E.cursorY, true);
       break;
     }
 

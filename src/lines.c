@@ -155,6 +155,57 @@ void editorLineDeleteChar(editorLine *line, int at) {
   editorUpdateLine(line);
 }
 
+void deleteToEndOFLine(int at) {
+  if (at < 0 || at + 1 >= E.numlines) return;
+
+  editorLine *line = &E.lines[at];
+  line->length = E.cursorX;
+  line->content = realloc(line->content, line->length + 1);
+  line->content[line->length] = '\0';
+  editorUpdateLine(line);
+}
+
+void changeEntireLine(int at) {
+  if (at < 0 || at + 1 >= E.numlines) return;
+
+  editorLine *line = &E.lines[at];
+  editorLine *prevLine = at ? &E.lines[at - 1] : line;
+
+  int tabs = line->length ? indentation(line) : indentation(prevLine);
+
+  free(line->content);
+  line->content = malloc(tabs + 1);
+  line->length = tabs;
+  memset(line->content, TAB, tabs);
+  line->content[tabs] = '\0';
+
+  E.cursorX = line->length;
+  editorUpdateLine(line);
+}
+
+void joinLines(int dest, int src, bool withSpace) {
+  if (src < 0 || src + 1 >= E.numlines) return;
+  if (dest < 0 || dest + 1 >= E.numlines) return;
+
+  editorLine *curLine = &E.lines[src];
+  editorLine *nextLine = &E.lines[dest];
+
+  int spaces = 0;
+  if (withSpace) {
+    while (spaces < nextLine->length) {
+      if (!isspace(nextLine->content[spaces])) break;
+      spaces++;
+    }
+    nextLine->length -= spaces;
+
+    if (nextLine->length)
+      editorLineInsertChar(curLine, curLine->length, SPACE);
+  }
+
+  editorLineAppendString(curLine, &nextLine->content[spaces], nextLine->length);
+  editorDeleteLine(dest);
+}
+
 void freeMemory(void) {
   free(E.filename);
   for (int i = 0; i < E.numlines; i++) {
