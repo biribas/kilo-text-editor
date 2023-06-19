@@ -486,8 +486,8 @@ void handleInsertMode(int c) {
     }
 
     default:
-      if (c == TAB || !iscntrl(c))
-        editorInsertChar(c);
+      if (c < 32 || c > 127) break;
+      editorInsertChar(c);
       break;
   }
 }
