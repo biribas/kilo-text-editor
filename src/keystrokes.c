@@ -245,12 +245,14 @@ void handleNormalMode(int c) {
       editorLineDeleteChar(&E.lines[E.cursorY], E.cursorX);
       break;
 
+    // Change (replace) to the end of the line
     case 'C': {
       E.mode = INSERT;
       deleteToEndOFLine(E.cursorY);
       break;
     }
 
+    // Change (replace) entire line
     case 'S':
       E.mode = INSERT;
       changeEntireLine(E.cursorY);
@@ -259,11 +261,13 @@ void handleNormalMode(int c) {
     case 'c': {
       c = editorReadKey();
       switch (c) {
+        // Change (replace) entire line
         case 'c':
           E.mode = INSERT;
           changeEntireLine(E.cursorY);
           break;
 
+        // Change (replace) to the end of the line
         case '$':
           E.mode = INSERT;
           deleteToEndOFLine(E.cursorY);
@@ -272,6 +276,7 @@ void handleNormalMode(int c) {
       break;
     }
 
+    // Delete (cut) to the end of the line
     case 'D': {
       deleteToEndOFLine(E.cursorY);
       if (E.cursorX) E.cursorX--;
@@ -281,6 +286,7 @@ void handleNormalMode(int c) {
     case 'd': {
       c = editorReadKey();
       switch (c) {
+        // Delete (cut) a line
         case 'd': {
           if (E.numlines == 1) {
             deleteLineContent(E.cursorY);
@@ -296,6 +302,7 @@ void handleNormalMode(int c) {
           break;
         }
 
+        // Delete (cut) to the end of the line
         case '$':
           deleteToEndOFLine(E.cursorY);
           if (E.cursorX) E.cursorX--;
