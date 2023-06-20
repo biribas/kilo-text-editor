@@ -11,7 +11,7 @@ This is my implementation of the Kilo Text Editor, made as final project for the
 ## Description
 
 ##### These are the improvements I made over the [Build Your Own Text Editor](https://viewsourcecode.org/snaptoken/kilo/) tutorial:
-* A new colorscheme, based on the [Catpuccin](https://github.com/catppuccin) mocha pallete (AKA best colorscheme ever)
+* A new colorscheme, based on the [Catppuccin](https://github.com/catppuccin) mocha pallete (AKA best colorscheme ever)
 * Braces and quotes autocomplete
 * Improved syntax highlighting
 * Improved keyword search engine
