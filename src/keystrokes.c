@@ -283,23 +283,16 @@ void handleNormalMode(int c) {
       switch (c) {
         case 'd': {
           if (E.numlines == 1) {
-            editorLine *line = &E.lines[0];
-            line->content = realloc(line->content, 1);
-            *line->content = '\0';
-            line->length = 0;
-
-            E.cursorX = line->length;
-            editorUpdateLine(line);
+            deleteLineContent(E.cursorY);
             return;
           }
 
           editorDeleteLine(E.cursorY);
 
-          if (E.cursorY >= E.numlines) {
+          if (E.cursorY >= E.numlines)
             E.cursorY--;
-          }
-          E.cursorX = min(E.cursorX, E.lines[E.cursorY].length - 1);
 
+          fixCursorXPosition();
           break;
         }
 
@@ -383,9 +376,11 @@ void handleNormalMode(int c) {
       for (int i = E.cursorY + 1; i < E.numlines; i++) {
         if (E.lines[i].length != 0) continue;
         E.cursorY = i;
+        fixCursorXPosition();
         return;
       }
       E.cursorY = E.numlines - 1;
+      fixCursorXPosition();
       break; 
 
     // Jump to previus paragraph
@@ -393,9 +388,11 @@ void handleNormalMode(int c) {
       for (int i = E.cursorY - 1; i >= 0; i--) {
         if (E.lines[i].length != 0) continue;
         E.cursorY = i;
+        fixCursorXPosition();
         return;
       }
       E.cursorY = 0;
+      fixCursorXPosition();
       break;
 
     // Arrow keys
