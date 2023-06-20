@@ -2,6 +2,8 @@
 
 This is my implementation of the Kilo Text Editor, made as final project for the [CS50x 2023](https://cs50.harvard.edu/x/2023/).
 
+[Demo video](https://youtu.be/MCP4tsJ0brA)
+
 ## Summary
 * [Description](#description)
 * [Usage](#usage)
