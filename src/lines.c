@@ -165,6 +165,16 @@ void deleteToEndOFLine(int at) {
   editorUpdateLine(line);
 }
 
+void deleteLineContent(int at) {
+  editorLine *line = &E.lines[at];
+  line->content = realloc(line->content, 1);
+  *line->content = '\0';
+  line->length = 0;
+
+  E.cursorX = line->length;
+  editorUpdateLine(line);
+}
+
 void changeEntireLine(int at) {
   if (at < 0 || at + 1 >= E.numlines) return;
 

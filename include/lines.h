@@ -13,6 +13,7 @@
   void editorLineAppendString(editorLine *line, char *string, size_t len);
   void editorLineDeleteChar(editorLine *line, int at);
   void deleteToEndOFLine(int at);
+  void deleteLineContent(int at);
   void changeEntireLine(int at);
   void joinLines(int dest, int src, bool withSpace);
   void freeMemory(void);
