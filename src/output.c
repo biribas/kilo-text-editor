@@ -250,6 +250,7 @@ void printTextLine(int row, color_t background, buffer *buff) {
     }
     appendBuffer(buff, &content[j], 1);
   }
+  editorHighlightOutput(buff, background);
 }
 
 void printSplashScreen(buffer *buff) {
