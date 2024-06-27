@@ -101,7 +101,7 @@ void editorDrawStatusBar(buffer *buff) {
   editorHighlightOutput(buff, theme.buffer.active.text);
   appendBuffer(buff, bufferInfo, bufferLen);
 
-  char percentage[4];
+  char percentage[5];
   if (E.numlines == 0 || E.cursorY == 0) {
     sprintf(percentage, "Top");
   }
@@ -110,10 +110,12 @@ void editorDrawStatusBar(buffer *buff) {
   }
   else {
     int num = 100 * (E.cursorY + 1) / E.numlines;
-    if (num < 10)
-      sprintf(percentage, " %d%%", num);
-    else
-      sprintf(percentage, "%d%%", num);
+    if (num >= 0 && num < 100) {
+      if (num < 10)
+        sprintf(percentage, " %d%%", num);
+      else
+        sprintf(percentage, "%d%%", num);
+    }
   }
 
   char cx[128], cy[128];
